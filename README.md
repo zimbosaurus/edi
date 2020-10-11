@@ -27,6 +27,8 @@
 # Implementation
 ### Stacks
 Use stacks for parsing the format. Make a copy of the format and pop segment of stack when done with it. This makes it easy to check the next item in the format, by peeking the head of the stack.
+### Decomposition
+
 
 <br/>
 

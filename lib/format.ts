@@ -36,19 +36,37 @@ export class EdiFormat implements IEdiFormat {
     read() {
         const parser = this.parser;
 
+        // Init parser
         parser.on('segment', this.onSegment);
         parser.once('end', () => parser.removeListener('segment', this.onSegment));
 
+        // Init format
+        this.itemStack = [...this._structure];
+
+        // Execute
         parser.parse();
 
+        // Return
         return undefined;
     }
 
-    private handleItem(item: EdiStructureEntry): boolean {
+    private itemStack: EdiStructure;
+
+    /**
+     * Evaluates a segment and returns true if this item should be pulled of the groups stack.
+     * @param item the structure item
+     * @returns if the item should be pulled
+     */
+    private handleItem(item: EdiStructureEntry, segment: Segment): boolean {
         return false;
     }
 
+    /**
+     * 
+     * @param segment 
+     */
     private onSegment(segment: Segment) {
+        const shouldPull = this.handleItem(this.itemStack[0], segment);
     }
 }
 
