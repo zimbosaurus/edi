@@ -1,0 +1,19 @@
+{
+  "name": "edi-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^14.11.8",
+    "concurrently": "^5.3.0",
+    "edi": "^1.1.0"
+  },
+  "scripts": {
+    "lib:build": "parcel build src/index.ts --out-dir build/lib --target node",
+    "lib:run": "node build/lib/index.js",
+    "lib": "yarn lib:build && yarn lib:run"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.3"
+  }
+}
