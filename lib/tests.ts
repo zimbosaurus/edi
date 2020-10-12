@@ -36,6 +36,45 @@ export default async function tests() {
     ])
     .read("UNB'UNH'BGM'RFF'NAD'TDT'RFF");
     console.log("result: " + r);
+
+    // Repeating segments
+    await format.structure([
+        segment('UNB'),
+        segment('UNH'),
+        segment('BGM', true, 9),
+        segment('RFF'),
+        segment('NAD', false, 3),
+        segment('TDT'),
+        segment('RFF'),
+    ])
+    .read("UNB'UNH'BGM'BGM'BGM'RFF'NAD'NAD'NAD'TDT'RFF");
+    console.log("result: " + r);
+
+    // Groups
+    await format.structure([
+        segment('UNB'),
+        segment('UNH'),
+        segment('BGM'),
+        group([
+            segment('LOC'),
+            segment('NAD'),
+            segment('TDT')
+        ], true, 9),
+        segment('RFF')
+    ])
+    .read([
+        'UNB',
+        'UNH',
+        'BGM',
+            'LOC',
+            'NAD',
+            'TDT',
+            'LOC',
+            'NAD',
+            'TDT',
+        'RFF'
+    ].join("'"));
+    console.log("result: " + r);
 }
 
 function e(fn: () => any) {

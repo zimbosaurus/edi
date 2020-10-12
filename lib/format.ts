@@ -80,7 +80,7 @@ export class EdiFormat implements IEdiFormat {
      */
     private handleItem(item: StructureItem, segment: Segment): Instructions {
         // The return value
-        let pullStack: Instructions;
+        let instructions: Instructions;
 
         if (!item?.data) {
             this.appendItemData(item);
@@ -88,20 +88,24 @@ export class EdiFormat implements IEdiFormat {
         
         // Handle depending on item type
         if (item.type == 'segment') {
-            pullStack = this.handleSegment(item as StructureSegment, segment);
+            instructions = this.handleSegment(item, segment);
+            if (instructions.nextSegment) {
+                item.data.repetitions++;
+            }
         }
         else if (item.type == 'group' || item.type == 'root') {
-            pullStack = this.handleGroup(item as StructureGroup, segment);
+            instructions = this.handleGroup(item, segment);
+            if (instructions.pullStack) {
+                item.data.entryPointer = 0;
+                item.data.repetitions++;
+            }
         }
         else {
             // TODO handle when type is invalid
             throw new Error(ERROR_INVALID_STRUCTURE_TYPE); // TODO better error message
         }
 
-        // Increment repetitions
-        item.data.repetitions++; // Maybe only do when necessary (return value is false) ?
-
-        return pullStack;
+        return instructions;
     }
 
     private handleSegment(item: StructureSegment, segment: Segment): Instructions {
@@ -118,15 +122,16 @@ export class EdiFormat implements IEdiFormat {
             return {pullStack: true, nextSegment: false};
         }
         else {
+            return {pullStack: true, nextSegment: false}
             // IF:
             //     id does NOT match
             //     AND item is NOT conditional (mandatory)
-            //     AND item has NOT rep eated before
+            //     AND item has NOT repeated before
             //
             // = something has gone wrong!
             
             // TODO handle this error better?
-            throw new Error(ERROR_UNEXPECTED_SEGMENT);
+            //throw new Error(ERROR_UNEXPECTED_SEGMENT);
         }
     }
     
@@ -136,8 +141,14 @@ export class EdiFormat implements IEdiFormat {
         // When returns true it say "Nähä du, det där segmentet vet jag inte vad det är för något!"
         // and this means that "då behåller vi segmentet och ger det till nästa item, för att se om den tycker om segmentet!"
         while (true) {
+            if (this.isDone(group)) {
+                return {pullStack: true, nextSegment: false};
+            }
+
             let instructions = this.handleItem(itemStack[group.data.entryPointer], segment);
             if (instructions.pullStack) {
+                if (!instructions.nextSegment) {
+                }
                 group.data.entryPointer++;
             }
             if (instructions.nextSegment) {
