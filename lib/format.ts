@@ -1,13 +1,19 @@
 import {
-    EdiStructureEntry,
+    StructureItem,
     EdiFormatFactory,
-    EdiGroupEntry,
-    EdiSegmentEntry,
+    StructureGroup,
+    StructureSegment,
     EdiStructure,
     IEdiFormat,
     IEdiParser,
     Segment
 } from "./types";
+import { EventListener } from "./observable";
+
+const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
+const ERROR_UNEXPECTED_SEGMENT = 'Segment received does not fit the format structure.'
+
+type Instructions = { pullStack: boolean, nextSegment: boolean }
 
 /**
  * 
@@ -16,10 +22,14 @@ export class EdiFormat implements IEdiFormat {
     private _structure: EdiStructure;
     private _shape: {};
 
+    private isReading = false;
+    private resolve: (value: any) => void;
+    private reject: (value: any) => void;
+
     constructor(public parser: IEdiParser) {}
     
     file(path: string) {
-        this.parser.path = path;
+        this.parser.file(path);
         return this;
     }
 
@@ -33,32 +43,112 @@ export class EdiFormat implements IEdiFormat {
         return this;
     }
 
-    read() {
-        const parser = this.parser;
+    async read(data?: string) {
+        this.isReading = true;
+        console.log("Reading..");
 
         // Init parser
-        parser.on('segment', this.onSegment);
-        parser.once('end', () => parser.removeListener('segment', this.onSegment));
+        const parser = this.parser;
+
+        const segmentListener = parser.on('segment', segment => this.onSegment(segment as Segment));
+        parser.once('end', () => {
+            parser.removeListener('segment', segmentListener);
+            this.reject(this.root.data.entryPointer);
+        });
 
         // Init format
-        this.itemStack = [...this._structure];
+        this.root = {type: 'root', entries: [...this._structure], conditional: false, repeat: 1};
 
         // Execute
-        parser.parse();
+        parser.parse(data);
 
         // Return
-        return undefined;
+        return new Promise((resolve, reject) => {
+            this.resolve = resolve;
+            this.reject = reject;
+        })
     }
 
-    private itemStack: EdiStructure;
+    private root: StructureGroup; 
 
     /**
-     * Evaluates a segment and returns true if this item should be pulled of the groups stack.
+     * Evaluates a segment and returns true if this item did not expect the given segment, and therefore should be pulled of the itemstack.
+     * Should not have any side-effects!
      * @param item the structure item
+     * @param segment
      * @returns if the item should be pulled
      */
-    private handleItem(item: EdiStructureEntry, segment: Segment): boolean {
-        return false;
+    private handleItem(item: StructureItem, segment: Segment): Instructions {
+        // The return value
+        let pullStack: Instructions;
+
+        if (!item?.data) {
+            this.appendItemData(item);
+        }
+        
+        // Handle depending on item type
+        if (item.type == 'segment') {
+            pullStack = this.handleSegment(item as StructureSegment, segment);
+        }
+        else if (item.type == 'group' || item.type == 'root') {
+            pullStack = this.handleGroup(item as StructureGroup, segment);
+        }
+        else {
+            // TODO handle when type is invalid
+            throw new Error(ERROR_INVALID_STRUCTURE_TYPE); // TODO better error message
+        }
+
+        // Increment repetitions
+        item.data.repetitions++; // Maybe only do when necessary (return value is false) ?
+
+        return pullStack;
+    }
+
+    private handleSegment(item: StructureSegment, segment: Segment): Instructions {
+        console.log(item.id, segment.getId());
+        if (item.id == segment.getId()) {
+            // We keep the item on the stack if it could repeat
+            // If the segment did match, we always want the next one
+            return {pullStack: !this.canRepeat(item), nextSegment: true};
+        }
+        else if (item.conditional || this.hasRepeated(item)) {
+            // id doesn't match, but it ok because it don't need to!
+            // If id does not match we definitely don't want it!
+            console.log("No match, but conditional!");
+            return {pullStack: true, nextSegment: false};
+        }
+        else {
+            // IF:
+            //     id does NOT match
+            //     AND item is NOT conditional (mandatory)
+            //     AND item has NOT rep eated before
+            //
+            // = something has gone wrong!
+            
+            // TODO handle this error better?
+            throw new Error(ERROR_UNEXPECTED_SEGMENT);
+        }
+    }
+    
+    private handleGroup(group: StructureGroup, segment: Segment): Instructions {
+        const itemStack = [...group.entries];
+
+        // When returns true it say "Nähä du, det där segmentet vet jag inte vad det är för något!"
+        // and this means that "då behåller vi segmentet och ger det till nästa item, för att se om den tycker om segmentet!"
+        while (true) {
+            let instructions = this.handleItem(itemStack[group.data.entryPointer], segment);
+            if (instructions.pullStack) {
+                group.data.entryPointer++;
+            }
+            if (instructions.nextSegment) {
+                break;
+            }
+        }
+
+        // When returns false it say "Nä vänta lite nu, jag vill se nästa segment brorsan!"
+        
+        const groupIsEmpty = this.isDone(group);
+        return {pullStack: groupIsEmpty && !this.canRepeat(group), nextSegment: true};
     }
 
     /**
@@ -66,7 +156,38 @@ export class EdiFormat implements IEdiFormat {
      * @param segment 
      */
     private onSegment(segment: Segment) {
-        const shouldPull = this.handleItem(this.itemStack[0], segment);
+        if (this.handleItem(this.root, segment).pullStack) {
+            this.resolve('RESOLVED');
+        }
+    }
+
+    private appendItemData(item: StructureItem) {
+        item.data = {
+            repetitions: 0,
+            entryPointer: 0
+        }
+    }
+
+    /**
+     * Check if an item could appear again.
+     * @param item the item
+     * @returns if it can repeat
+     */
+    private canRepeat(item: StructureItem) {
+        // TODO handle when data may be null?
+        return item.type != 'root' && (item?.data.repetitions) < (item as StructureGroup | StructureSegment).repeat - 1;
+    }
+
+    /**
+     * 
+     * @param item 
+     */
+    private hasRepeated(item: StructureItem) {
+        return item.data.repetitions > 0;
+    }
+
+    private isDone(group: StructureGroup) {
+        return group.data.entryPointer >= group.entries.length;
     }
 }
 
@@ -80,14 +201,14 @@ export function makeStructureSegment(id: string, conditional = false, repeat = 1
     return {
         type: 'segment',
         id, conditional, repeat
-    } as EdiSegmentEntry
+    } as StructureSegment
 }
 
-export function makeStructureGroup(entries: EdiStructureEntry[], conditional = false, repeat = 1) {
+export function makeStructureGroup(entries: StructureItem[], conditional = false, repeat = 1) {
     return {
         type: 'group',
         conditional, repeat, entries
-    } as EdiGroupEntry
+    } as StructureGroup
 }
 
 /**

@@ -6,11 +6,13 @@
   "dependencies": {
     "@types/node": "^14.11.8",
     "concurrently": "^5.3.0",
-    "edi": "^1.1.0"
+    "edi": "^1.1.0",
+    "source-map-support": "^0.5.19"
   },
   "scripts": {
-    "lib:build": "parcel build src/index.ts --out-dir build/lib --target node",
-    "lib:run": "node build/lib/index.js",
+    "lib:build": "parcel build src/index.ts --out-dir build/lib --target node --public-url ./",
+    "lib:watch": "parcel watch src/index.ts --out-dir build/lib --target node --public-url ./",
+    "lib:run": "node -r source-map-support/register build/lib/index.js",
     "lib": "yarn lib:build && yarn lib:run"
   },
   "devDependencies": {

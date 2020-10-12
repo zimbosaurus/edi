@@ -1,41 +1,34 @@
 import { EdiParserEvent, EdiParserEventArgs, EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types";
-import { EventListener, ListenerEntry } from "./observable";
+import { EventListener, ListenerEntry, Observable } from "./observable";
 import * as fs from 'fs';
+import { Stream } from "stream";
+import { randomBytes } from "crypto";
 
 /**
  * 
  */
-class EdiParser implements IEdiParser {
-    private _listeners: ListenerEntry<EdiParserEventMap>[] = [];
+class EdiParser extends Observable<EdiParserEventMap> implements IEdiParser {
     private _segments: Segment[];
+    private _path: string;
 
     public segmentDelimiter: string = "'";
 
-    constructor(public path: string) {}
-
-    // IObservable implementation
-    on = (event: EdiParserEvent, listener: EventListener<EdiParserEventMap[typeof event]>) => {
-        this._listeners.push({ event, listener });
-    };
-    once = (event: EdiParserEvent, listener: EventListener<EdiParserEventMap[typeof event]>) => {
-        const self = this;
-        function listenOnce(args?: EdiParserEventMap[typeof event]) {
-            self.removeListener(event, listenOnce);
-            listener?.(args);
-        }
-        this._listeners.push({ event, listener: listenOnce });
-    };
-    removeListener = (event: EdiParserEvent, listener: EventListener<EdiParserEventMap[typeof event]>) => {
-        this._listeners.filter(le => le.event != event || le.listener != listener);
-    };
-    listeners = () => [...this._listeners];
+    constructor(path?: string) {
+        super();
+        this._path = path;
+    }
 
     segments: () => Iterable<Segment> = () => this._segments;
+    
+    file = (path: string) => {
+        this._path = path;
+        return this;
+    };
 
-    parse() {
-        const rs = fs.createReadStream(this.path);
+    parse(data?: string) {
+        const rs = data ? Stream.Readable.from(data.split('')) : fs.createReadStream(this._path);
         let chars: string[] = [];
-        this._segments = []
+        this._segments = [];
 
         rs.on('readable', () => {
             let c: number;
@@ -44,30 +37,27 @@ class EdiParser implements IEdiParser {
                 const char = c.toString();
 
                 if (char == this.segmentDelimiter) {
-                    const segment = makeSegment(chars.join(''));
-                    this._segments.push(segment); // TODO optimize?
-                    this.emit('segment', segment);
+                    this.pushSegment(chars);
                     chars = [];
                 }
                 else {
                     chars.push(char);
                 }
             }
-
         });
 
-        rs.once('end', () => this.emit('end'));
+        rs.once('end', () => {
+            this.pushSegment(chars);
+            this.emit('end');
+        });
 
         return this;
     }
 
-    /**
-     * 
-     * @param event 
-     * @param args 
-     */
-    private emit(event: EdiParserEvent, args?: EdiParserEventMap[typeof event]) {
-        this._listeners.forEach(le => le.event == event && le?.listener?.(args));
+    private pushSegment(chars: string[]) {
+        const segment = makeSegment(chars.join(''));
+        this._segments.push(segment); // TODO optimize?
+        this.emit('segment', segment);
     }
 }
 
@@ -95,5 +85,5 @@ function segmentId(segment: string): string {
  * 
  * @param path 
  */
-const ediFn: EdiParserFactory = path => new EdiParser(path);
-export default ediFn;
+const edi: EdiParserFactory = (path?: string) => new EdiParser(path);
+export default edi;

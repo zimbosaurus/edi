@@ -57,14 +57,19 @@ when receiving segment:
         is possible in current group
         is beginning of next group
     
-isLegal(segment, group):
+handleSegment(item, segment):
+  segment is expected if:
+    
 
+handleGroup(item, segment):
+  segment is expected if:
 ```
 
 ### **API Usage Example**
 ```typescript
 // Import parserfactory and a format to use
-import edi, { BaplieReader } from 'edi-parser';
+import edi from 'edi-parser';
+import { baplie } from 'edi-parser/formats';
 
 // Create parser, using different data types
 const parser = edi('FILE_PATH');
@@ -81,11 +86,12 @@ parser.parse()
 const parser = edi('FILE_PATH').parse();
 
 // Wrap parser in formatreader
-const baplieReader = new EdiFormat(parser);
+const format = new EdiFormat(parser);
 
 // Somehow specify the shape of the resulting data structure
 // TODO Better idea!!
-baplieReader.shape({
+format.structure(baplie).shape({
     containers: (segment) => isContainer(segment)
-})
+});
+const result = format.read();
 ```

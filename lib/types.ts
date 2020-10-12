@@ -21,7 +21,7 @@ export type EdiParserEventArgs = EdiParserEventMap[keyof EdiParserEventMap];
 /**
  * Creates a parser using the given file.
  */
-export type EdiParserFactory = (path: string) => IEdiParser;
+export type EdiParserFactory = (path?: string) => IEdiParser;
 
 /**
  * Parses EDI files.
@@ -31,13 +31,13 @@ export interface IEdiParser extends IObservable<EdiParserEventMap> {
     /**
      * 
      */
-    path: string;
+    file: (path: string) => IEdiParser;
     
     /**
      * Process the file.
      * @returns self
      */
-    parse: () => IEdiParser;
+    parse: (data?: string) => IEdiParser;
 
     /**
      * Get data as segments.
@@ -86,7 +86,7 @@ export interface IEdiFormat {
     /**
      * 
      */
-    read: () => any;
+    read: (data?: string) => any;
 }
 
 /**
@@ -95,20 +95,26 @@ export interface IEdiFormat {
 export type EdiFormatFactory = (parser: IEdiParser) => IEdiFormat;
 
 
-export type EdiSegmentEntry = {
+export type StructureItemData = {
+    repetitions: number;
+    entryPointer: number;
+}
+
+export type StructureSegment = {
     type: 'segment';
     conditional: boolean;
     repeat: number;
+    data?: StructureItemData;
     id: string;
 }
 
-export type EdiGroupEntry = {
-    type: 'group';
+export type StructureGroup = {
+    type: 'group' | 'root';
     conditional: boolean;
     repeat: number;
-    entries: EdiStructureEntry[];
+    data?: StructureItemData;
+    entries: EdiStructure;
 }
 
-export type EdiStructureEntry = EdiSegmentEntry | EdiGroupEntry;
-
-export type EdiStructure = EdiStructureEntry[];
+export type StructureItem = StructureSegment | StructureGroup;
+export type EdiStructure = StructureItem[];
