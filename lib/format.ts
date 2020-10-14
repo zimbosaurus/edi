@@ -9,6 +9,9 @@ import {
     Segment
 } from "./types";
 import { EventListener } from "./observable";
+import { exception } from "console";
+import { OutgoingMessage } from "http";
+import { runInThisContext } from "vm";
 
 const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
 const ERROR_UNEXPECTED_SEGMENT = 'Segment received does not fit the format structure.'
@@ -110,56 +113,115 @@ export class EdiFormat implements IEdiFormat {
 
     private handleSegment(item: StructureSegment, segment: Segment): Instructions {
         console.log(item.id, segment.getId());
+        let ins: Instructions = undefined;
+
         if (item.id == segment.getId()) {
             // We keep the item on the stack if it could repeat
             // If the segment did match, we always want the next one
-            return {pullStack: !this.canRepeat(item), nextSegment: true};
+            ins = {pullStack: !this.canRepeat(item), nextSegment: true};
         }
         else if (item.conditional || this.hasRepeated(item)) {
             // id doesn't match, but it ok because it don't need to!
             // If id does not match we definitely don't want it!
-            console.log("No match, but conditional!");
-            return {pullStack: true, nextSegment: false};
+            console.log("No match, but conditional or repeating!");
+            ins = {pullStack: true, nextSegment: false}
         }
         else {
-            return {pullStack: true, nextSegment: false}
-            // IF:
-            //     id does NOT match
-            //     AND item is NOT conditional (mandatory)
-            //     AND item has NOT repeated before
-            //
-            // = something has gone wrong!
-            
-            // TODO handle this error better?
-            //throw new Error(ERROR_UNEXPECTED_SEGMENT);
+            ins = {pullStack: true, nextSegment: false} // TODO ???
         }
+
+        return ins;
     }
     
     private handleGroup(group: StructureGroup, segment: Segment): Instructions {
         const itemStack = [...group.entries];
 
-        // When returns true it say "Nähä du, det där segmentet vet jag inte vad det är för något!"
-        // and this means that "då behåller vi segmentet och ger det till nästa item, för att se om den tycker om segmentet!"
+        // Iterating over items in group until we request the next segment, OR pull the group off the stack
         while (true) {
-            if (this.isDone(group)) {
-                return {pullStack: true, nextSegment: false};
+
+            if (this.isDone(group)) { // TODO maybe not work?? TODO maybe yes work!
+                this.resetGroup(group);
             }
 
-            let instructions = this.handleItem(itemStack[group.data.entryPointer], segment);
-            if (instructions.pullStack) {
-                if (!instructions.nextSegment) {
+            const item = itemStack[group.data.entryPointer];
+            let ins: Instructions = this.handleItem(item, segment);
+            let outIns: Instructions = undefined;
+
+            if (ins.pullStack) {
+                // Current item inside this group is done and wants to be pulled off the stack
+                // This is either because it can't repeat or it did not fit and was conditional
+
+                group.data.entryPointer++; // MAYBE we always want to do this
+
+                // Item is done, but does not request the next segment
+                // This means the item did not match
+                if (!ins.nextSegment) {
+                    // If the item is mandatory AND it has not repeated before, then it is bad
+                    const badExit = !item.conditional && !this.hasRepeated(item);
+                    // If the group is neither conditional or has repeated, it is too bad exit
+                    // ..or mandatory in other words
+                    const groupMandatory = !group.conditional && !this.hasRepeated(group);
+                    
+                    // this could be bad if the item was mandatory, AND this group is mandatory
+                    if (badExit && groupMandatory) {
+                        throw new Error(ERROR_UNEXPECTED_SEGMENT); // TODO error handling
+                    }
+                    else if (badExit) {
+                        // if the exit was bad/unexpected, we exit this group immediately
+                        // because we know the group does not match specification
+                        outIns = {
+                            pullStack: true,
+                            nextSegment: false
+                        }
+                    }
+                    else {
+                        // item is done (wants to be pulled) AND is conditional
+                        // This is ok, we just compare the segment against the next item!
+                        outIns = {
+                            pullStack: false,
+                            nextSegment: false
+                        } 
+                    }
                 }
-                group.data.entryPointer++;
+                else {
+                    // Item wants to be pulled, and is requesting the next segment, all is well!
+                    // We pull this group off the stack if it is done AND can not repeat
+                    const pullStack = this.isDone(group) && !this.canRepeat(group);
+                    outIns = {
+                        pullStack,
+                        nextSegment: true
+                    }
+                }
+
+                // Reset segment reps when it's done
+                // We have to do it here because logic above
+                // makes use of this state: "badExit"
+                // TODO ???
+                if (item.type == 'segment') {
+                    item.data.repetitions = 0;
+                }
             }
-            if (instructions.nextSegment) {
-                break;
+            else {
+                // Current item inside this group is not done yet
+                // If the item is a segment this means it will repeat
+                // If it is a group then it could mean something else
+
+                // Generally, when we don't pull something off the stack it means
+                // things are going well
+                outIns = {...ins};
+            }
+
+            // Reset the group when pulling it off the stack
+            // We always reset the group when exiting, this way we don't have to worry about it later on
+            if (outIns.pullStack) {
+                this.resetGroup(group);
+            }
+
+            // We need to return if we want to do either
+            if (outIns.nextSegment || outIns.pullStack) { // TODO did not think this part through that well TODO seems to be fine!
+                return outIns;
             }
         }
-
-        // When returns false it say "Nä vänta lite nu, jag vill se nästa segment brorsan!"
-        
-        const groupIsEmpty = this.isDone(group);
-        return {pullStack: groupIsEmpty && !this.canRepeat(group), nextSegment: true};
     }
 
     /**
@@ -170,6 +232,11 @@ export class EdiFormat implements IEdiFormat {
         if (this.handleItem(this.root, segment).pullStack) {
             this.resolve('RESOLVED');
         }
+    }
+
+    private resetGroup(group: StructureGroup) {
+        group.data.entryPointer = 0;
+        group.data.repetitions++;
     }
 
     private appendItemData(item: StructureItem) {

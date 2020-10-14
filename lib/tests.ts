@@ -4,13 +4,11 @@ import edi from "./parser";
 import { resolvePath } from "./util";
 
 export default async function tests() {
-    const segmentsOnly = resolvePath('data/segments_only.edi');
-    const coprarAnina = resolvePath('data/coprar_anina_1.edi');
     const format = new EdiFormat(edi());
 
     let r;
 
-    // Sequence of mandatory segments.
+    console.log("Sequence of mandatory segments");
     r = await format.structure([
         segment('UNB'),
         segment('UNH'),
@@ -21,8 +19,8 @@ export default async function tests() {
     .read("UNB'UNH'BGM'DTM'RFF");
     console.log("result: " + r);
 
-    // Sequence of mandatory and conditional segments. 
-    await format.structure([
+    console.log("Sequence of mandatory and conditional segments");
+    r = await format.structure([
         segment('UNB'),
         segment('UNH'),
         segment('BGM'),
@@ -37,8 +35,8 @@ export default async function tests() {
     .read("UNB'UNH'BGM'RFF'NAD'TDT'RFF");
     console.log("result: " + r);
 
-    // Repeating segments
-    await format.structure([
+    console.log("Repeating segments");
+    r = await format.structure([
         segment('UNB'),
         segment('UNH'),
         segment('BGM', true, 9),
@@ -50,8 +48,8 @@ export default async function tests() {
     .read("UNB'UNH'BGM'BGM'BGM'RFF'NAD'NAD'NAD'TDT'RFF");
     console.log("result: " + r);
 
-    // Groups
-    await format.structure([
+    console.log("Repeating group");
+    r = await format.structure([
         segment('UNB'),
         segment('UNH'),
         segment('BGM'),
@@ -73,6 +71,37 @@ export default async function tests() {
             'NAD',
             'TDT',
         'RFF'
+    ].join("'"));
+    console.log("result: " + r);
+
+    console.log("Nested groups");
+    r = await format.structure([
+        segment('UNA'),
+        segment('UNH'),
+        segment('BGM', true),
+        group([
+            segment('TDT'),
+            segment('FTX', true, 2),
+            group([
+                segment('LOC'),
+                segment('NDA', false, 3),
+            ], false, 2)
+        ], false, 3),
+        segment('UNT')
+    ])
+    .read([
+        'UNA',
+        'UNH',
+            'TDT',
+            'FTX',
+            'FTX',
+                'LOC',
+                'NDA',
+                'NDA',
+            'TDT',
+                'LOC',
+                'NDA',
+        'UNT'
     ].join("'"));
     console.log("result: " + r);
 }
