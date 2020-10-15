@@ -3,11 +3,16 @@
 
 <br/>
 
-# To-Do
+# Main To-Do
 - Foundation
   * ~~Basic parsing~~
   * ~~Types~~
-- Format parsing
+  * ~~Format parsing~~ 😎
+- Transforming data
+  1. Emit formatting events
+  2. Specify output shape functionally
+
+# Misc To-Do
 - Performance improvements
   * Not sure 🤔🤔
 

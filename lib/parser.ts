@@ -1,8 +1,7 @@
 import { EdiParserEvent, EdiParserEventArgs, EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types";
-import { EventListener, ListenerEntry, Observable } from "./observable";
+import { EventListener, ListenerEntry, Observable } from "observable";
 import * as fs from 'fs';
 import { Stream } from "stream";
-import { randomBytes } from "crypto";
 
 /**
  * 

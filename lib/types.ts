@@ -1,4 +1,6 @@
-import { IObservable } from "./observable";
+import { IObservable } from "observable";
+
+// TODO split types.ts into multiple files
 
 const PARSER_EVENT_SEGMENT = 'segment';
 const PARSER_EVENT_END = 'end';
@@ -53,20 +55,20 @@ export type Segment = {
     getId: () => string;
     getData: () => string;
     data: string;
-    meta?: SegmentMetaData;
+}
+
+export type EdiFormatEventMap = EdiParserEventMap & {
+    'group_enter': StructureGroup,
+    'group_exit': StructureGroup,
+    'repeat': StructureItem,
+    'segment_done': StructureSegment,  // TODO rename to "segment_exit"? more consequent naming of events
+    'item_done': StructureSegment
 }
 
 /**
  * 
  */
-export type SegmentMetaData = {
-
-}
-
-/**
- * 
- */
-export interface IEdiFormat {
+export interface IEdiFormat extends IObservable<EdiFormatEventMap> {
 
     /**
      * 
@@ -76,7 +78,7 @@ export interface IEdiFormat {
     /**
      * 
      */
-    outShape: (shape: {}) => IEdiFormat; 
+    shape: (shape: {}) => IEdiFormat; 
 
     /**
      * 
@@ -94,10 +96,18 @@ export interface IEdiFormat {
  */
 export type EdiFormatFactory = (parser: IEdiParser) => IEdiFormat;
 
-
+/**
+ * Data applied and used while parsing the format.
+ */
 export type StructureItemData = {
     repetitions: number;
     entryPointer: number;
+}
+
+export type StructureLabel = {
+    name?: string;
+    description?: string;
+    info?: any;
 }
 
 export type StructureSegment = {
@@ -105,6 +115,7 @@ export type StructureSegment = {
     conditional: boolean;
     repeat: number;
     data?: StructureItemData;
+    label?: StructureLabel;
     id: string;
 }
 
@@ -113,6 +124,7 @@ export type StructureGroup = {
     conditional: boolean;
     repeat: number;
     data?: StructureItemData;
+    label?: StructureLabel;
     entries: EdiStructure;
 }
 

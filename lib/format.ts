@@ -6,12 +6,11 @@ import {
     EdiStructure,
     IEdiFormat,
     IEdiParser,
-    Segment
+    Segment,
+    EdiFormatEventMap,
+    StructureLabel
 } from "./types";
-import { EventListener } from "./observable";
-import { exception } from "console";
-import { OutgoingMessage } from "http";
-import { runInThisContext } from "vm";
+import { Observable } from "observable";
 
 const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
 const ERROR_UNEXPECTED_SEGMENT = 'Segment received does not fit the format structure.'
@@ -21,7 +20,7 @@ type Instructions = { pullStack: boolean, nextSegment: boolean }
 /**
  * 
  */
-export class EdiFormat implements IEdiFormat {
+export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiFormat {
     private _structure: EdiStructure;
     private _shape: {};
 
@@ -29,15 +28,17 @@ export class EdiFormat implements IEdiFormat {
     private resolve: (value: any) => void;
     private reject: (value: any) => void;
 
-    constructor(public parser: IEdiParser) {}
+    constructor(public parser: IEdiParser) {
+        super();
+    }
     
     file(path: string) {
         this.parser.file(path);
         return this;
     }
 
-    outShape(s: {}) {
-        this._shape = s;
+    shape<T extends {}>(shape: T) {
+        this._shape = shape;
         return this;
     }
 
@@ -53,14 +54,24 @@ export class EdiFormat implements IEdiFormat {
         // Init parser
         const parser = this.parser;
 
-        const segmentListener = parser.on('segment', segment => this.onSegment(segment as Segment));
+        const segmentListener = parser.any(({event, args}) => {
+            switch (event) {
+                case 'segment':
+                    this.onSegment(args as Segment);
+                default:
+                    this.emit(event, args);
+                    break;
+            }
+
+        });
         parser.once('end', () => {
             parser.removeListener('segment', segmentListener);
-            this.reject(this.root.data.entryPointer);
+            this.reject(this.root.data.entryPointer); // TODO do something else here
         });
 
         // Init format
-        this.root = {type: 'root', entries: [...this._structure], conditional: false, repeat: 1};
+        // TODO make function?
+        this.root = {type: 'root', entries: [...this._structure], conditional: false, repeat: 1, label: {name: 'root'}};
 
         // Execute
         parser.parse(data);
@@ -83,7 +94,7 @@ export class EdiFormat implements IEdiFormat {
      */
     private handleItem(item: StructureItem, segment: Segment): Instructions {
         // The return value
-        let instructions: Instructions;
+        let ins: Instructions;
 
         if (!item?.data) {
             this.appendItemData(item);
@@ -91,14 +102,14 @@ export class EdiFormat implements IEdiFormat {
         
         // Handle depending on item type
         if (item.type == 'segment') {
-            instructions = this.handleSegment(item, segment);
-            if (instructions.nextSegment) {
+            ins = this.handleSegment(item, segment);
+            if (ins.nextSegment) { // TODO do this inside function instead?
                 item.data.repetitions++;
             }
         }
         else if (item.type == 'group' || item.type == 'root') {
-            instructions = this.handleGroup(item, segment);
-            if (instructions.pullStack) {
+            ins = this.handleGroup(item, segment);
+            if (ins.pullStack) { // TODO do this inside function instead?
                 item.data.entryPointer = 0;
                 item.data.repetitions++;
             }
@@ -108,22 +119,30 @@ export class EdiFormat implements IEdiFormat {
             throw new Error(ERROR_INVALID_STRUCTURE_TYPE); // TODO better error message
         }
 
-        return instructions;
+        if (ins.pullStack) {
+            this.emit('item_done', item);
+        }
+
+        return ins;
     }
 
+    /**
+     * 
+     * @param item 
+     * @param segment 
+     */
     private handleSegment(item: StructureSegment, segment: Segment): Instructions {
-        console.log(item.id, segment.getId());
         let ins: Instructions = undefined;
 
         if (item.id == segment.getId()) {
             // We keep the item on the stack if it could repeat
-            // If the segment did match, we always want the next one
+            // Because the segment did match, we always want the next one
+            this.emit('segment_done', item);
             ins = {pullStack: !this.canRepeat(item), nextSegment: true};
         }
         else if (item.conditional || this.hasRepeated(item)) {
             // id doesn't match, but it ok because it don't need to!
             // If id does not match we definitely don't want it!
-            console.log("No match, but conditional or repeating!");
             ins = {pullStack: true, nextSegment: false}
         }
         else {
@@ -133,8 +152,17 @@ export class EdiFormat implements IEdiFormat {
         return ins;
     }
     
+    /**
+     * 
+     * @param group 
+     * @param segment 
+     */
     private handleGroup(group: StructureGroup, segment: Segment): Instructions {
         const itemStack = [...group.entries];
+
+        if (group.data.entryPointer == 0) {
+            this.emit('group_enter', group);
+        }
 
         // Iterating over items in group until we request the next segment, OR pull the group off the stack
         while (true) {
@@ -214,6 +242,7 @@ export class EdiFormat implements IEdiFormat {
             // Reset the group when pulling it off the stack
             // We always reset the group when exiting, this way we don't have to worry about it later on
             if (outIns.pullStack) {
+                this.emit('group_exit', group);
                 this.resetGroup(group);
             }
 
@@ -230,15 +259,23 @@ export class EdiFormat implements IEdiFormat {
      */
     private onSegment(segment: Segment) {
         if (this.handleItem(this.root, segment).pullStack) {
-            this.resolve('RESOLVED');
+            this.resolve('RESOLVED'); // TODO do return
         }
     }
 
+    /**
+     * 
+     * @param group 
+     */
     private resetGroup(group: StructureGroup) {
         group.data.entryPointer = 0;
         group.data.repetitions++;
     }
 
+    /**
+     * 
+     * @param item 
+     */
     private appendItemData(item: StructureItem) {
         item.data = {
             repetitions: 0,
@@ -264,6 +301,10 @@ export class EdiFormat implements IEdiFormat {
         return item.data.repetitions > 0;
     }
 
+    /**
+     * 
+     * @param group 
+     */
     private isDone(group: StructureGroup) {
         return group.data.entryPointer >= group.entries.length;
     }
@@ -282,16 +323,34 @@ export function makeStructureSegment(id: string, conditional = false, repeat = 1
     } as StructureSegment
 }
 
-export function makeStructureGroup(entries: StructureItem[], conditional = false, repeat = 1) {
+/**
+ * 
+ * @param entries 
+ * @param conditional 
+ * @param repeat 
+ */
+export function makeStructureGroup(entries: StructureItem[], options: {conditional?: boolean, repeat?: number, label?: StructureLabel} = defaultGroupOptions) {
+    options = {...defaultGroupOptions, ...options}
     return {
         type: 'group',
-        conditional, repeat, entries
+        entries,
+        ...options
     } as StructureGroup
+}
+
+const defaultGroupOptions = {conditional: false, repeat: 1}
+
+/**
+ * 
+ * @param item 
+ */
+export function applyLabel(item: StructureItem, name?: string, desc?: string, info?: any): StructureItem {
+    return {...item, label: {name, description: desc, info} }
 }
 
 /**
  * 
  * @param parser 
  */
-const ediFn: EdiFormatFactory = parser => new EdiFormat(parser);
-export default ediFn;
+const format: EdiFormatFactory = parser => new EdiFormat(parser);
+export default format;

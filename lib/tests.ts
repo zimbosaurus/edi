@@ -1,10 +1,11 @@
 import { EdiFormat, makeStructureGroup as group, makeStructureSegment as segment } from '../lib/format';
-import { EdiStructure } from '../lib/types';
+import { EdiStructure, StructureGroup } from '../lib/types';
 import edi from "./parser";
-import { resolvePath } from "./util";
 
 export default async function tests() {
     const format = new EdiFormat(edi());
+    format.on('group_enter', (group: StructureGroup) => console.log("enter: " + group.label?.name));
+    format.on('group_exit', (group: StructureGroup) => console.log("exit: " + group.label?.name));
 
     let r;
 
@@ -57,7 +58,7 @@ export default async function tests() {
             segment('LOC'),
             segment('NAD'),
             segment('TDT')
-        ], true, 9),
+        ], {conditional: true, repeat: 9}),
         segment('RFF')
     ])
     .read([
@@ -85,8 +86,8 @@ export default async function tests() {
             group([
                 segment('LOC'),
                 segment('NDA', false, 3),
-            ], false, 2)
-        ], false, 3),
+            ], {conditional: false, repeat: 2, label: {name: 'inner'}})
+        ], {conditional: false, repeat: 3, label: {name: 'outer'}}),
         segment('UNT')
     ])
     .read([
