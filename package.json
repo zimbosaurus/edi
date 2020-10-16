@@ -1,11 +1,11 @@
 {
-  "name": "edi-app",
+  "name": "edi",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^14.11.8",
-    "edi": "^1.1.0"
+    "@types/node": "^14.11.8"
   },
   "scripts": {
     "lib:build": "parcel build src/index.ts --out-dir build/lib --target node --public-url ./",

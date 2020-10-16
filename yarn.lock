@@ -84,14 +84,6 @@ decamelize@^1.2.0:
   resolved "https://registry.yarnpkg.com/decamelize/-/decamelize-1.2.0.tgz#f6534d15148269b20352e7bee26f501f9a191290"
   integrity sha1-9lNNFRSCabIDUue+4m9QH5oZEpA=
 
-edi@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/edi/-/edi-1.1.0.tgz#185873b476fa6fad35097dc42009861fc9eccefa"
-  integrity sha1-GFhztHb6b601CX3EIAmGH8nszvo=
-  dependencies:
-    moment "^2.10.3"
-    twix "^0.6.4"
-
 emoji-regex@^7.0.1:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/emoji-regex/-/emoji-regex-7.0.3.tgz#933a04052860c85e83c122479c4748a8e4c72156"
@@ -158,11 +150,6 @@ lodash@^4.17.15:
   version "4.17.20"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.20.tgz#b44a9b6297bcb698f1c51a3545a2b3b368d59c52"
   integrity sha512-PlhdFcillOINfeV7Ni6oF1TAEayyZBoZ8bcshTHqOYJYlrqzRK5hagpagky5o4HfCzzd1TRkXPMFq6cKk9rGmA==
-
-moment@^2.10.3:
-  version "2.29.1"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.1.tgz#b2be769fa31940be9eeea6469c075e35006fa3d3"
-  integrity sha512-kHmoybcPV8Sqy59DwNDY3Jefr64lK/by/da0ViFcuA4DH0vQg5Q6Ze5VimxkfQNSC+Mls/Kx53s7TjP1RhFEDQ==
 
 normalize-package-data@^2.3.2:
   version "2.5.0"
@@ -342,11 +329,6 @@ tslib@^1.9.0:
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
-
-twix@^0.6.4:
-  version "0.6.5"
-  resolved "https://registry.yarnpkg.com/twix/-/twix-0.6.5.tgz#50a60257d275e681be55a644e61b16d23fd97040"
-  integrity sha1-UKYCV9J15oG+VaZE5hsW0j/ZcEA=
 
 typescript@^4.0.3:
   version "4.0.3"

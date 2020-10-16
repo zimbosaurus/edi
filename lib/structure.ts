@@ -1,4 +1,4 @@
-import { StructureGroup, StructureItem, StructureLabel, StructureSegment } from "./types"
+import { StructureGroup, StructureItem, StructureLabel, StructureSegment } from "./types/format"
 
 type MakeStructureGroupOptions = {
     conditional?: boolean,

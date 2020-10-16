@@ -1,5 +1,6 @@
-import { EdiFormat, makeStructureGroup as group, makeStructureSegment as segment } from '../lib/format';
-import { EdiStructure, StructureGroup } from '../lib/types';
+import { makeStructureGroup as group, makeStructureSegment as segment } from '../lib/structure';
+import { StructureGroup } from '../lib/types/format';
+import { EdiFormat } from './format';
 import edi from "./parser";
 
 export default async function tests() {

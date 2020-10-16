@@ -1,4 +1,4 @@
-import { EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types/parser";
+import { EdiParserEventMap, EdiParserFactory, IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
 import { Observable } from "observable";
 import { Stream } from "stream";
 import * as fs from 'fs';
@@ -45,9 +45,9 @@ class EdiParser extends Observable<EdiParserEventMap> implements IEdiParser {
             }
         });
 
-        rs.once('end', () => {
+        rs.once(PARSER_EVENT_END_DATA, () => {
             this.pushSegment(chars);
-            this.emit('end');
+            this.emit(PARSER_EVENT_END_DATA);
         });
 
         return this;
