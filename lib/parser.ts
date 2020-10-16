@@ -1,7 +1,7 @@
-import { EdiParserEvent, EdiParserEventArgs, EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types";
-import { EventListener, ListenerEntry, Observable } from "observable";
-import * as fs from 'fs';
+import { EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types/parser";
+import { Observable } from "observable";
 import { Stream } from "stream";
+import * as fs from 'fs';
 
 /**
  * 
@@ -66,7 +66,6 @@ class EdiParser extends Observable<EdiParserEventMap> implements IEdiParser {
  */
 function makeSegment(data: string): Segment {
     return {
-        data,
         getData: () => data,
         getId: () => segmentId(data)
     }

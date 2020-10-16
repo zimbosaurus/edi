@@ -1,14 +1,16 @@
 import edi from '../lib/parser';
-import { EdiFormat, makeStructureGroup as group, makeStructureSegment as segment } from '../lib/format';
 import { resolvePath as path } from '../lib/util';
-import tests from '../lib/tests';
 import { databuilder } from '../lib/databuilder';
 import baplie from '../lib/formats/baplie';
+import { EdiFormat } from '../lib/format';
+import { writeFileSync } from 'fs';
 
 const baplieFile = path('data/baplie.EDI');
 const format = new EdiFormat(edi(baplieFile)).structure(baplie);
 
-databuilder(format);
-format.read();
+(async () => {
+    const shape = await databuilder(format);
+    writeFileSync('result.json', JSON.stringify(shape.shape['SG5'], undefined, '\t'));
+})()
 
 //tests();

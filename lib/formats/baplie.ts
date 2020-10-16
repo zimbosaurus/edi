@@ -1,7 +1,5 @@
-import { EdiFormat, makeStructureGroup as group, makeStructureSegment as segment } from '../format';
-import { EdiStructure } from '../types';
-
-export default baplie;
+import { makeStructureGroup as group, makeStructureSegment as segment } from '../structure';
+import { EdiStructure } from '../types/format';
 
 /**
  * Baplie EDIFACT format.
@@ -53,3 +51,5 @@ export const baplie: EdiStructure = [
     ], {conditional: true, repeat: 9999, label: {name: 'SG5'}}),
     segment('UNT')
 ]
+
+export default baplie;

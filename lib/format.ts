@@ -5,11 +5,10 @@ import {
     StructureSegment,
     EdiStructure,
     IEdiFormat,
-    IEdiParser,
-    Segment,
     EdiFormatEventMap,
-    StructureLabel
-} from "./types";
+    FORMAT_EVENT_DONE,
+} from "./types/format";
+import { IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
 import { Observable } from "observable";
 
 const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
@@ -25,8 +24,6 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
     private _shape: {};
 
     private isReading = false;
-    private resolve: (value: any) => void;
-    private reject: (value: any) => void;
 
     constructor(public parser: IEdiParser) {
         super();
@@ -64,9 +61,9 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
             }
 
         });
-        parser.once('end', () => {
+        parser.once(PARSER_EVENT_END_DATA, () => {
             parser.removeListener('segment', segmentListener);
-            this.reject(this.root.data.entryPointer); // TODO do something else here
+            //this.reject(this.root.data.entryPointer); // TODO do something else here
         });
 
         // Init format
@@ -76,11 +73,7 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
         // Execute
         parser.parse(data);
 
-        // Return
-        return new Promise((resolve, reject) => {
-            this.resolve = resolve;
-            this.reject = reject;
-        })
+        // TODO Return
     }
 
     private root: StructureGroup; 
@@ -169,6 +162,7 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
 
             if (this.isDone(group)) { // TODO maybe not work?? TODO maybe yes work!
                 this.resetGroup(group);
+                this.emit('repeat', group);
             }
 
             const item = itemStack[group.data.entryPointer];
@@ -232,7 +226,7 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
             else {
                 // Current item inside this group is not done yet
                 // If the item is a segment this means it will repeat
-                // If it is a group then it could mean something else
+                // If it is a group then it could mean something else, MAYBE not
 
                 // Generally, when we don't pull something off the stack it means
                 // things are going well
@@ -259,7 +253,7 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
      */
     private onSegment(segment: Segment) {
         if (this.handleItem(this.root, segment).pullStack) {
-            this.resolve('RESOLVED'); // TODO do return
+            this.emit(FORMAT_EVENT_DONE);
         }
     }
 
@@ -308,44 +302,6 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
     private isDone(group: StructureGroup) {
         return group.data.entryPointer >= group.entries.length;
     }
-}
-
-/**
- * 
- * @param id 
- * @param conditional 
- * @param repeat 
- */
-export function makeStructureSegment(id: string, conditional = false, repeat = 1) {
-    return {
-        type: 'segment',
-        id, conditional, repeat
-    } as StructureSegment
-}
-
-/**
- * 
- * @param entries 
- * @param conditional 
- * @param repeat 
- */
-export function makeStructureGroup(entries: StructureItem[], options: {conditional?: boolean, repeat?: number, label?: StructureLabel} = defaultGroupOptions) {
-    options = {...defaultGroupOptions, ...options}
-    return {
-        type: 'group',
-        entries,
-        ...options
-    } as StructureGroup
-}
-
-const defaultGroupOptions = {conditional: false, repeat: 1}
-
-/**
- * 
- * @param item 
- */
-export function applyLabel(item: StructureItem, name?: string, desc?: string, info?: any): StructureItem {
-    return {...item, label: {name, description: desc, info} }
 }
 
 /**

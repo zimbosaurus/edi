@@ -1,68 +1,21 @@
 import { IObservable } from "observable";
-
-// TODO split types.ts into multiple files
-
-const PARSER_EVENT_SEGMENT = 'segment';
-const PARSER_EVENT_END = 'end';
-
-export type EdiParserEventMap = {
-    [PARSER_EVENT_SEGMENT]: Segment,
-    [PARSER_EVENT_END]: void
-}
+import { EdiParserEventMap, IEdiParser } from "./parser";
 
 /**
  * 
  */
-export type EdiParserEvent = keyof EdiParserEventMap;
+export const FORMAT_EVENT_DONE = 'format_done';
 
 /**
  * 
  */
-export type EdiParserEventArgs = EdiParserEventMap[keyof EdiParserEventMap];
-
-/**
- * Creates a parser using the given file.
- */
-export type EdiParserFactory = (path?: string) => IEdiParser;
-
-/**
- * Parses EDI files.
- */
-export interface IEdiParser extends IObservable<EdiParserEventMap> {
-
-    /**
-     * 
-     */
-    file: (path: string) => IEdiParser;
-    
-    /**
-     * Process the file.
-     * @returns self
-     */
-    parse: (data?: string) => IEdiParser;
-
-    /**
-     * Get data as segments.
-     * @returns the segments
-     */
-    segments: () => Iterable<Segment>;
-}
-
-/**
- * 
- */
-export type Segment = {
-    getId: () => string;
-    getData: () => string;
-    data: string;
-}
-
 export type EdiFormatEventMap = EdiParserEventMap & {
     'group_enter': StructureGroup,
     'group_exit': StructureGroup,
     'repeat': StructureItem,
     'segment_done': StructureSegment,  // TODO rename to "segment_exit"? more consequent naming of events
-    'item_done': StructureSegment
+    'item_done': StructureSegment,
+    [FORMAT_EVENT_DONE]: void
 }
 
 /**
