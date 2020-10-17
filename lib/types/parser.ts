@@ -43,6 +43,15 @@ export type Segment = {
      * @returns the segment data
      */
     getData: () => string;
+
+    /**
+     * 
+     */
+    getComponents: () => EdiComponent[];
+}
+
+export type EdiComponent = {
+    getData: () => string;
 }
 
 /**

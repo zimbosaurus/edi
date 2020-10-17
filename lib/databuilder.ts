@@ -1,20 +1,23 @@
 import makeFormat, { EdiFormat } from "./format";
 import edi from './parser';
 import { FORMAT_EVENT_DONE, IEdiFormat, StructureGroup, StructureItem, StructureSegment } from "./types/format";
-import { PARSER_EVENT_END_DATA } from "./types/parser";
+import { PARSER_EVENT_END_DATA, Segment } from "./types/parser";
 
 type DataShape = {
-    shape: {[key: string]: {}[]}
+    shape: {[key: string]: any[]}
     group: StructureGroup
 }
 
-export function databuilder(format: IEdiFormat): Promise<any> {
+/**
+ * 
+ * @param format 
+ */
+export function databuilder(format: IEdiFormat): Promise<any> { // TODO better function name
     return new Promise((resolve, reject) => {
 
         const groupStack: DataShape[] = []
 
         const handle = format.any(({ args, event }) => {
-            const segment = args as StructureSegment;
             const group = args as StructureGroup;
 
             switch (event) {
@@ -44,8 +47,9 @@ export function databuilder(format: IEdiFormat): Promise<any> {
                 }
 
                 case 'segment_done': {
-                    const label = segment?.label?.name || segment.id;
-                    appendShape(groupStack[0], segment, label);
+                    const {segment, item} = args as {segment: Segment, item: StructureSegment};
+                    const label = item?.label?.name || item.id;
+                    appendShape(groupStack[0], {data: segment.getData(), components: segment.getComponents().map(c => c.getData())}, label);
                     break;
                 }
 

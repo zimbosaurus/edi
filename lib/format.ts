@@ -10,6 +10,7 @@ import {
 } from "./types/format";
 import { IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
 import { Observable } from "observable";
+import { databuilder } from "./databuilder";
 
 const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
 const ERROR_UNEXPECTED_SEGMENT = 'Segment received does not fit the format structure.'
@@ -22,7 +23,7 @@ type Instructions = { pullStack: boolean, nextSegment: boolean }
 export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiFormat {
     private _structure: EdiStructure;
     private _shape: {};
-
+    private root: StructureGroup;
     private isReading = false;
 
     constructor(public parser: IEdiParser) {
@@ -76,7 +77,9 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
         // TODO Return
     }
 
-    private root: StructureGroup; 
+    async build() {
+        return await databuilder(this);
+    }
 
     /**
      * Evaluates a segment and returns true if this item did not expect the given segment, and therefore should be pulled of the itemstack.
@@ -130,7 +133,7 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
         if (item.id == segment.getId()) {
             // We keep the item on the stack if it could repeat
             // Because the segment did match, we always want the next one
-            this.emit('segment_done', item);
+            this.emit('segment_done', {item, segment});
             ins = {pullStack: !this.canRepeat(item), nextSegment: true};
         }
         else if (item.conditional || this.hasRepeated(item)) {

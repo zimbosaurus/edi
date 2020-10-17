@@ -9,8 +9,9 @@ const baplieFile = path('data/baplie.EDI');
 const format = new EdiFormat(edi(baplieFile)).structure(baplie);
 
 (async () => {
-    const shape = await databuilder(format);
-    writeFileSync('data/result.json', JSON.stringify(shape.shape['SG5'], undefined, '\t'));
+    const shape = await format.build();
+    writeFileSync('data/result.min.json', JSON.stringify(shape.shape['SG5']));
 })()
+
 
 //tests();

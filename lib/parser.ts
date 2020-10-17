@@ -1,7 +1,11 @@
-import { EdiParserEventMap, EdiParserFactory, IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
+import { EdiComponent, EdiParserEventMap, EdiParserFactory, IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
 import { Observable } from "observable";
 import { Stream } from "stream";
 import * as fs from 'fs';
+
+const SEGMENT_DELIMITER = "'";
+const COMPONENT_DELIMITER = ":";
+const ELEMENT_DELIMITER = "+";
 
 /**
  * 
@@ -10,7 +14,9 @@ class EdiParser extends Observable<EdiParserEventMap> implements IEdiParser {
     private _segments: Segment[];
     private _path: string;
 
-    public segmentDelimiter: string = "'";
+    public segmentDelimiter = SEGMENT_DELIMITER;
+    public componentDelimiter = COMPONENT_DELIMITER;
+    public elementDelimiter = ELEMENT_DELIMITER; 
 
     constructor(path?: string) {
         super();
@@ -67,8 +73,13 @@ class EdiParser extends Observable<EdiParserEventMap> implements IEdiParser {
 function makeSegment(data: string): Segment {
     return {
         getData: () => data,
-        getId: () => segmentId(data)
+        getId: () => segmentId(data),
+        getComponents: () => segmentComponents(data)
     }
+}
+
+function segmentComponents(segment: string, delimiter = COMPONENT_DELIMITER): EdiComponent[] {
+    return segment.split(delimiter).map<EdiComponent>(c => ({ getData: () => c }));
 }
 
 /**

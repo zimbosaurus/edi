@@ -1,5 +1,5 @@
 import { IObservable } from "observable";
-import { EdiParserEventMap, IEdiParser } from "./parser";
+import { EdiParserEventMap, IEdiParser, Segment } from "./parser";
 
 /**
  * 
@@ -13,7 +13,7 @@ export type EdiFormatEventMap = EdiParserEventMap & {
     'group_enter': StructureGroup,
     'group_exit': StructureGroup,
     'repeat': StructureItem,
-    'segment_done': StructureSegment,  // TODO rename to "segment_exit"? more consequent naming of events
+    'segment_done': {item: StructureSegment, segment: Segment},  // TODO rename to "segment_exit"? more consequent naming of events
     'item_done': StructureSegment,
     [FORMAT_EVENT_DONE]: void
 }
