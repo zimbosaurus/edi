@@ -12,7 +12,7 @@ type DataShape = {
  * 
  * @param format 
  */
-export function databuilder(format: IEdiFormat): Promise<any> { // TODO better function name
+export function databuilder(format: IEdiFormat, data?: string): Promise<any> { // TODO better function name
     return new Promise((resolve, reject) => {
 
         const groupStack: DataShape[] = []
@@ -61,7 +61,7 @@ export function databuilder(format: IEdiFormat): Promise<any> { // TODO better f
             }
         })
 
-        format.read();
+        format.read(data);
     })
 }
 

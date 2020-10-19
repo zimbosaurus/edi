@@ -1,8 +1,8 @@
 {
-  "name": "edi",
+  "name": "@zimbosaurus/edi",
   "version": "1.0.0",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
   "license": "MIT",
   "dependencies": {
     "@types/node": "^14.11.8"
@@ -11,6 +11,7 @@
     "lib:build": "parcel build src/index.ts --out-dir build/lib --target node --public-url ./",
     "lib:watch": "parcel watch src/index.ts --out-dir build/lib --target node --public-url ./",
     "lib:run": "node -r source-map-support/register --inspect build/lib/index.js",
+    "lib:dist": "tsc -p tsconfig.json",
     "lib": "yarn lib:build && yarn lib:run"
   },
   "devDependencies": {

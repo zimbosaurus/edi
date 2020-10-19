@@ -42,6 +42,11 @@ export interface IEdiFormat extends IObservable<EdiFormatEventMap> {
      * 
      */
     read: (data?: string) => any;
+
+    /**
+     * 
+     */
+    build: (data?: string) => any;
 }
 
 /**

@@ -73,12 +73,10 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
 
         // Execute
         parser.parse(data);
-
-        // TODO Return
     }
 
-    async build() {
-        return await databuilder(this);
+    async build(data?: string) {
+        return await databuilder(this, data);
     }
 
     /**

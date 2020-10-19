@@ -1,7 +1,7 @@
 import { EdiComponent, EdiParserEventMap, EdiParserFactory, IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
 import { Observable } from "observable";
 import { Stream } from "stream";
-import * as fs from 'fs';
+import * as fs from "fs";
 
 const SEGMENT_DELIMITER = "'";
 const COMPONENT_DELIMITER = ":";

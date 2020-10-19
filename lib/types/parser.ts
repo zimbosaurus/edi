@@ -54,6 +54,12 @@ export type EdiComponent = {
     getData: () => string;
 }
 
+export type ReadableEvent = 'ready' | 'end' | 'data'; 
+
+export interface IReadable {
+    on: (event: ReadableEvent, args: any | string) => void;
+}
+
 /**
  * Parses EDI files.
  */
