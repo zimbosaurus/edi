@@ -1,7 +1,5 @@
-import { EdiComponent, EdiParserEventMap, EdiParserFactory, IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
-import { Observable } from "observable";
-import { Stream } from "stream";
-import * as fs from "fs";
+import { EdiComponent, EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types/parser";
+import 'web-streams-polyfill';
 
 const SEGMENT_DELIMITER = "'";
 const COMPONENT_DELIMITER = ":";
@@ -10,59 +8,56 @@ const ELEMENT_DELIMITER = "+";
 /**
  * 
  */
-class EdiParser extends Observable<EdiParserEventMap> implements IEdiParser {
-    private _segments: Segment[];
-    private _path: string;
-
+export default class EdiParser implements IEdiParser {
     public segmentDelimiter = SEGMENT_DELIMITER;
     public componentDelimiter = COMPONENT_DELIMITER;
     public elementDelimiter = ELEMENT_DELIMITER; 
 
-    constructor(path?: string) {
-        super();
-        this._path = path;
-    }
+    parse(stream: ReadableStream<string>) {
+        const parser = this;
+        const reader = stream.getReader();
 
-    segments: () => Iterable<Segment> = () => this._segments;
-    
-    file = (path: string) => {
-        this._path = path;
-        return this;
-    };
+        return new ReadableStream({
+            start(controller: ReadableStreamDefaultController<Segment>) {
+                let chunks: string[] = [];
 
-    parse(data?: string) {
-        const rs = data ? Stream.Readable.from(data.split('')) : fs.createReadStream(this._path);
-        let chars: string[] = [];
-        this._segments = [];
+                return pump();
 
-        rs.on('readable', () => {
-            let c: number;
+                function pump() {
+                    return reader.read().then(r => {
+                        const segment = readChunk(parser, r);
+                        if (segment) {
+                            controller.enqueue(segment);
+                        }
 
-            while ((c = rs.read(1)) != undefined) {
-                const char = c.toString();
-
-                if (char == this.segmentDelimiter) {
-                    this.pushSegment(chars);
-                    chars = [];
+                        if (r.done) {
+                            controller.close();
+                            return;
+                        }
+                        
+                        return pump();
+                    })
                 }
-                else {
-                    chars.push(char);
+        
+                function readChunk(parser: EdiParser, r: ReadableStreamReadResult<string>): Segment | void {
+                    if (!r.done) {
+                        if (r.value == parser.segmentDelimiter) {
+                            return formSegment();
+                        }
+                        else if (r.value != undefined) {
+                            chunks.push(r.value);
+                        }
+                    }
+                    else {
+                        return formSegment();
+                    }
+                }
+        
+                function formSegment() {
+                    return makeSegment(chunks.splice(0, chunks.length).join(''));
                 }
             }
-        });
-
-        rs.once(PARSER_EVENT_END_DATA, () => {
-            this.pushSegment(chars);
-            this.emit(PARSER_EVENT_END_DATA);
-        });
-
-        return this;
-    }
-
-    private pushSegment(chars: string[]) {
-        const segment = makeSegment(chars.join(''));
-        this._segments.push(segment); // TODO optimize?
-        this.emit('segment', segment);
+        })
     }
 }
 
@@ -78,6 +73,11 @@ function makeSegment(data: string): Segment {
     }
 }
 
+/**
+ * 
+ * @param segment 
+ * @param delimiter 
+ */
 function segmentComponents(segment: string, delimiter = COMPONENT_DELIMITER): EdiComponent[] {
     return segment.split(delimiter).map<EdiComponent>(c => ({ getData: () => c }));
 }
@@ -89,10 +89,3 @@ function segmentComponents(segment: string, delimiter = COMPONENT_DELIMITER): Ed
 function segmentId(segment: string): string {
     return segment.slice(0, 3);
 }
-
-/**
- * 
- * @param path 
- */
-const edi: EdiParserFactory = (path?: string) => new EdiParser(path);
-export default edi;

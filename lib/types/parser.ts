@@ -1,4 +1,4 @@
-import { IObservable } from "observable";
+import { IObservable } from "@zimbosaurus/observable";
 
 /**
  * Invoked when the parser has read a segment.
@@ -63,27 +63,12 @@ export interface IReadable {
 /**
  * Parses EDI files.
  */
-export interface IEdiParser extends IObservable<EdiParserEventMap> {
-
+export interface IEdiParser {
     /**
-     * Set the path to a file for the parser to read data from.
-     * @param path - the absolute path to the file
-     * @returns this parser
+     * @param stream
+     * @returns // TODO
      */
-    file: (path: string) => IEdiParser;
-    
-    /**
-     * Process the file.
-     * @param data - optionally use a string as data instead of reading a file
-     * @returns this parser
-     */
-    parse: (data?: string) => IEdiParser;
-
-    /**
-     * Get data as segments.
-     * @returns the segments
-     */
-    segments: () => Iterable<Segment>;
+    parse: (stream: ReadableStream<string>) => ReadableStream<Segment>;
 }
 
 /**

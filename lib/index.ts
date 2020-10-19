@@ -1,7 +1,9 @@
-import edi from './parser';
-import format from './format';
-import baplie from './formats/baplie';
-import { databuilder } from './databuilder';
-import { resolvePath } from './util';
+import EdiParser from './parser';
+import EdiFormat from './format';
+import baplieStructure from './formats/baplie';
+import databuilder from './databuilder';
+import edi, { Edi } from './edi';
+import * as io from './io'; // TODO export differently
 
-export { edi, format, baplie, databuilder, resolvePath }
+export default edi;
+export { Edi, EdiParser, EdiFormat, baplieStructure, databuilder, io }

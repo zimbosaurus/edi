@@ -1,82 +1,63 @@
 import {
     StructureItem,
-    EdiFormatFactory,
     StructureGroup,
     StructureSegment,
     EdiStructure,
     IEdiFormat,
     EdiFormatEventMap,
     FORMAT_EVENT_DONE,
+    FORMAT_EVENT_SEGMENT_DONE,
+    FORMAT_EVENT_ITEM_DONE
 } from "./types/format";
-import { IEdiParser, PARSER_EVENT_END_DATA, Segment } from "./types/parser";
-import { Observable } from "observable";
-import { databuilder } from "./databuilder";
+import { Segment } from "./types/parser";
+import { Observable } from "@zimbosaurus/observable";
 
 const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
 const ERROR_UNEXPECTED_SEGMENT = 'Segment received does not fit the format structure.'
+const ERROR_MISSING_STRUCTURE = 'Format does not have a structure.' // TODO better
 
 type Instructions = { pullStack: boolean, nextSegment: boolean }
 
 /**
  * 
  */
-export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiFormat {
-    private _structure: EdiStructure;
-    private _shape: {};
+export default class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiFormat {
     private root: StructureGroup;
     private isReading = false;
 
-    constructor(public parser: IEdiParser) {
+    constructor(public formatStructure?: EdiStructure) {
         super();
     }
     
-    file(path: string) {
-        this.parser.file(path);
-        return this;
-    }
-
-    shape<T extends {}>(shape: T) {
-        this._shape = shape;
-        return this;
-    }
-
     structure(s: EdiStructure) {
-        this._structure = s;
+        this.formatStructure = s;
         return this;
     }
 
-    async read(data?: string) {
+    read(stream?: ReadableStream<Segment>) {
+
+        // TODO error handling
+        if (!this.formatStructure) {
+            throw new Error(ERROR_MISSING_STRUCTURE);
+        }
+
+        const format = this;
         this.isReading = true;
-        console.log("Reading..");
 
-        // Init parser
-        const parser = this.parser;
+        this.root = this.createRoot();
+        readStream(stream.getReader());
 
-        const segmentListener = parser.any(({event, args}) => {
-            switch (event) {
-                case 'segment':
-                    this.onSegment(args as Segment);
-                default:
-                    this.emit(event, args);
-                    break;
+        async function readStream(reader?: ReadableStreamReader<Segment>) {
+            const { done, value: segment } = await reader.read();
+            if (segment) {
+                format.onSegment(segment);
             }
 
-        });
-        parser.once(PARSER_EVENT_END_DATA, () => {
-            parser.removeListener('segment', segmentListener);
-            //this.reject(this.root.data.entryPointer); // TODO do something else here
-        });
-
-        // Init format
-        // TODO make function?
-        this.root = {type: 'root', entries: [...this._structure], conditional: false, repeat: 1, label: {name: 'root'}};
-
-        // Execute
-        parser.parse(data);
-    }
-
-    async build(data?: string) {
-        return await databuilder(this, data);
+            if (!done) {
+                format.isReading = false;
+                return await readStream(reader); 
+            }
+        }
     }
 
     /**
@@ -114,7 +95,7 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
         }
 
         if (ins.pullStack) {
-            this.emit('item_done', item);
+            this.emit(FORMAT_EVENT_ITEM_DONE, item);
         }
 
         return ins;
@@ -131,7 +112,7 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
         if (item.id == segment.getId()) {
             // We keep the item on the stack if it could repeat
             // Because the segment did match, we always want the next one
-            this.emit('segment_done', {item, segment});
+            this.emit(FORMAT_EVENT_SEGMENT_DONE, {item, data: segment});
             ins = {pullStack: !this.canRepeat(item), nextSegment: true};
         }
         else if (item.conditional || this.hasRepeated(item)) {
@@ -303,11 +284,8 @@ export class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiForm
     private isDone(group: StructureGroup) {
         return group.data.entryPointer >= group.entries.length;
     }
-}
 
-/**
- * 
- * @param parser 
- */
-const format: EdiFormatFactory = parser => new EdiFormat(parser);
-export default format;
+    private createRoot(): StructureGroup {
+        return {type: 'root', entries: [...this.formatStructure], conditional: false, repeat: 1, label: {name: 'root'}}
+    }
+}
