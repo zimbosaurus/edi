@@ -26,21 +26,17 @@ class Edi {
 
     structure(structure: EdiStructure): Edi {
         this.options = {...this.options, structure }
-        delete this.options.file;
-        delete this.options.text;
         return this;
     }
     
     file(path: string): Edi {
         this.options = {...this.options, file: path }
-        delete this.options.structure;
         delete this.options.text;
         return this;
     }
     
     text(text: string): Edi {
         this.options = {...this.options, text }
-        delete this.options.structure;
         delete this.options.file;
         return this;
     }

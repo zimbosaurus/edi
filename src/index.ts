@@ -1,8 +1,8 @@
-import { resolvePath as path, resolvePath } from '../lib/util';
-import { baplie } from '../lib/formats/baplie';
-import { DataShape, SegmentShape, Shape } from '../lib/types/databuilder';
-import edi from '../lib';
-import { makeLabel } from '../lib/databuilder';
+import { resolvePath as path, resolvePath } from './lib/util';
+import { baplie } from './lib/formats/baplie';
+import { DataShape, SegmentShape, Shape } from './lib/types/databuilder';
+import edi from './lib';
+import { makeLabel } from './lib/databuilder';
 import { writeFileSync } from 'fs';
 
 (async () => {
