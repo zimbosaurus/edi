@@ -5,5 +5,5 @@ import { resolve } from "path";
  * @param file the file
  */
 export function resolvePath(file: string) {
-    return resolve(__dirname, '../../', file);
+    return resolve(__dirname, '../', file);
 }

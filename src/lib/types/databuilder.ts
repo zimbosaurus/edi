@@ -1,18 +1,43 @@
 import { StructureGroup, StructureSegment } from './format';
 import { Segment } from './parser';
+import { makeSelectorApi } from '../databuilder';
 
 /**
  * 
  */
-export type Shape = {
-    selectLabel: ShapeSelector<string>,
-    selectShape: {[label: string]: ShapeSelector<any>}
+export type BuildRules = (BuildRule | BuildRuleFactory)[]
+
+/**
+ * 
+ */
+export type BuildRuleFactory = (api: SelectorApi) => BuildRule;
+
+/**
+ * 
+ */
+export type BuildRule = {
+    label: string | ((props: SelectorProps) => string);
+    conditions: ((props: SelectorProps) => boolean)[];
+    selector?: (props: SelectorProps) => any;
 }
 
 /**
  * 
  */
-export type ShapeSelector<T> = (groupStack: GroupShape[], dataShape: DataShape) => T;
+export type ConditionSelector = (props: SelectorProps) => boolean;
+
+/**
+ * 
+ */
+export type SelectorApi = ReturnType<typeof makeSelectorApi>;
+
+/**
+ * 
+ */
+export type SelectorProps = {
+    stack: GroupShape[];
+    shape: DataShape;
+}
 
 /**
  * 
@@ -31,6 +56,6 @@ export type SegmentShape = {
 }
 
 /**
- * 
+ * Defines a structural item as forwarded by the databuilder.
  */
 export type DataShape = GroupShape | SegmentShape;

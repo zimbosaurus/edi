@@ -7,7 +7,10 @@ import {
     EdiFormatEventMap,
     FORMAT_EVENT_DONE,
     FORMAT_EVENT_SEGMENT_DONE,
-    FORMAT_EVENT_ITEM_DONE
+    FORMAT_EVENT_ITEM_DONE,
+    FORMAT_EVENT_REPEAT,
+    FORMAT_EVENT_GROUP_ENTER,
+    FORMAT_EVENT_GROUP_EXIT
 } from "./types/format";
 import { Segment } from "./types/parser";
 import { Observable } from "@zimbosaurus/observable";
@@ -84,10 +87,6 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
         }
         else if (item.type == 'group' || item.type == 'root') {
             ins = this.handleGroup(item, segment);
-            if (ins.pullStack) { // TODO do this inside function instead?
-                item.data.entryPointer = 0;
-                item.data.repetitions++;
-            }
         }
         else {
             // TODO handle when type is invalid
@@ -136,7 +135,7 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
         const itemStack = [...group.entries];
 
         if (group.data.entryPointer == 0) {
-            this.emit('group_enter', group);
+            this.emit(FORMAT_EVENT_GROUP_ENTER, group);
         }
 
         // Iterating over items in group until we request the next segment, OR pull the group off the stack
@@ -144,7 +143,7 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
 
             if (this.isDone(group)) { // TODO maybe not work?? TODO maybe yes work!
                 this.resetGroup(group);
-                this.emit('repeat', group);
+                this.emit(FORMAT_EVENT_REPEAT, group);
             }
 
             const item = itemStack[group.data.entryPointer];
@@ -218,8 +217,9 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
             // Reset the group when pulling it off the stack
             // We always reset the group when exiting, this way we don't have to worry about it later on
             if (outIns.pullStack) {
-                this.emit('group_exit', group);
-                this.resetGroup(group);
+                this.emit(FORMAT_EVENT_GROUP_EXIT, group);
+                group.data.repetitions++; // TODO NEW should we really increase repetitions here?
+                group.data.entryPointer = 0;
             }
 
             // We need to return if we want to do either

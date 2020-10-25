@@ -14,8 +14,8 @@
     "lib:watch": "parcel watch src/index.ts --out-dir build --target node --public-url ./",
     "lib:run": "node -r source-map-support/register build/index.js",
     "lib": "yarn lib:build && yarn lib:run",
-    "prepare": "tsc -p tsconfig.json && copy dist-package.json dist\\package.json",
-    "dist": "npm publish ./dist"
+    "lib:dist": "tsc -p tsconfig.json && copy dist-package.json dist\\package.json",
+    "lib:publish": "npm publish ./dist"
   },
   "devDependencies": {
     "concurrently": "^5.3.0",
