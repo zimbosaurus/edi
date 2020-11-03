@@ -47,11 +47,21 @@ export type Segment = {
     /**
      * 
      */
-    getComponents: () => EdiComponent[];
+    getElements: () => EdiElement[];
+
+    /**
+     * 
+     */
+    getComposites: () => EdiComposite[];
 }
 
-export type EdiComponent = {
+export type EdiElement = {
     getData: () => string;
+}
+
+export type EdiComposite = {
+    getData: () => string;
+    getElements: () => EdiElement[];
 }
 
 export type ReadableEvent = 'ready' | 'end' | 'data'; 

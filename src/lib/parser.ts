@@ -1,8 +1,8 @@
-import { EdiComponent, EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types/parser";
+import { EdiComposite, EdiElement, EdiParserEventMap, EdiParserFactory, IEdiParser, Segment } from "./types/parser";
 import 'web-streams-polyfill';
 
 const SEGMENT_DELIMITER = "'";
-const COMPONENT_DELIMITER = ":";
+const COMPOSITE_DELIMITER = ":";
 const ELEMENT_DELIMITER = "+";
 
 /**
@@ -10,7 +10,7 @@ const ELEMENT_DELIMITER = "+";
  */
 export default class EdiParser implements IEdiParser {
     public segmentDelimiter = SEGMENT_DELIMITER;
-    public componentDelimiter = COMPONENT_DELIMITER;
+    public componentDelimiter = COMPOSITE_DELIMITER;
     public elementDelimiter = ELEMENT_DELIMITER; 
 
     parse(stream: ReadableStream<string>) {
@@ -69,7 +69,8 @@ function makeSegment(data: string): Segment {
     return {
         getData: () => data,
         getId: () => segmentId(data),
-        getComponents: () => segmentComponents(data)
+        getElements: () => segmentElements(data),
+        getComposites: () => segmentComposites(data)
     }
 }
 
@@ -78,8 +79,20 @@ function makeSegment(data: string): Segment {
  * @param segment 
  * @param delimiter 
  */
-function segmentComponents(segment: string, delimiter = COMPONENT_DELIMITER): EdiComponent[] {
-    return segment.split(delimiter).map<EdiComponent>(c => ({ getData: () => c }));
+function segmentComposites(segment: string, delimiter = COMPOSITE_DELIMITER): EdiComposite[] {
+    return segment.split(delimiter).map<EdiComposite>(c => ({
+        getData: () => c,
+        getElements: () => segmentElements(c),
+    }));
+}
+
+/**
+ * 
+ * @param segment 
+ * @param delimiter 
+ */
+function segmentElements(segment: string, delimiter = ELEMENT_DELIMITER): EdiElement[] {
+    return segment.split(delimiter).map<EdiElement>(c => ({ getData: () => c }));
 }
 
 /**

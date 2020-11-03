@@ -15,7 +15,7 @@
     "lib:run": "node -r source-map-support/register build/index.js",
     "lib": "yarn lib:build && yarn lib:run",
     "lib:dist": "tsc -p tsconfig.json && copy dist-package.json dist\\package.json",
-    "lib:publish": "npm publish ./dist"
+    "lib:publish": "publish ./dist"
   },
   "devDependencies": {
     "concurrently": "^5.3.0",
