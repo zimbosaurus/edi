@@ -5,6 +5,7 @@ type MakeStructureGroupOptions = {
     repeat?: number,
     label?: StructureLabel
 }
+
 const defaultGroupOptions: MakeStructureGroupOptions = {
     conditional: false,
     repeat: 1

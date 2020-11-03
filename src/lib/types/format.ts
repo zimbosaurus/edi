@@ -1,6 +1,6 @@
 import { IObservable } from "@zimbosaurus/observable";
 import { SegmentShape } from "./databuilder";
-import { IEdiParser, Segment } from "./parser";
+import { Segment } from "./parser";
 
 /**
  * 

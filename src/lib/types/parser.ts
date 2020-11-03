@@ -1,4 +1,3 @@
-import { IObservable } from "@zimbosaurus/observable";
 
 /**
  * Invoked when the parser has read a segment.

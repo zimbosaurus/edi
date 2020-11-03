@@ -9,7 +9,7 @@ import { streamFile, streamString } from './io';
 import './structure';
 
 /* Formats */
-import './formats/baplie';
+import './structure/baplie';
 
 export default edi;
 export { Edi, EdiParser, EdiFormat }

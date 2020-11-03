@@ -1,6 +1,7 @@
-import { FORMAT_EVENT_DONE, FORMAT_EVENT_GROUP_ENTER, FORMAT_EVENT_GROUP_EXIT, FORMAT_EVENT_REPEAT, FORMAT_EVENT_SEGMENT_DONE, IEdiFormat, StructureGroup, StructureItem, StructureSegment } from "./types/format";
+import { FORMAT_EVENT_DONE, FORMAT_EVENT_GROUP_ENTER, FORMAT_EVENT_GROUP_EXIT, FORMAT_EVENT_REPEAT, FORMAT_EVENT_SEGMENT_DONE, IEdiFormat, StructureGroup } from "./types/format";
 import { GroupShape, DataShape, SegmentShape, BuildRules, SelectorProps, BuildRule, BuildRuleFactory, SelectorApi, ConditionSelector } from "./types/databuilder";
 import { Segment } from "./types/parser";
+import formatSegment from "./structure/segments";
 
 /**
  * Reads a segmentstream using a format, and outputs the data in a shape specified by a set of rules.
@@ -114,16 +115,19 @@ export function makeRules(api: SelectorApi, factory: BuildRuleFactory[]) {
  * @param props 
  */
 export function makeSelectorApi(props: {stack: GroupShape[], shape: DataShape}) {
+    const { shape } = props;
     return {
+        hasLabel,
+        matchId,
+        labelOnStack,
+        wrapOr,
         ifSegment: <T>(fn: (shape: SegmentShape) => T) => ifSegment<T>(props, fn),
         ifGroup: <T>(fn: (shape: GroupShape) => T) => ifGroup<T>(props, fn),
-        hasLabel,
-        labelOnStack,
-        matchId,
-        wrapOr,
-        isGroup: () => (() => props.shape.item.type != 'segment') as ConditionSelector,
-        isSegment: () => (() => props.shape.item.type == 'segment') as ConditionSelector,
-        getLabel: () => getLabel(props.shape),
+        isGroup: () => (() => shape.item.type != 'segment') as ConditionSelector,
+        isSegment: () => (() => shape.item.type == 'segment') as ConditionSelector,
+        getLabel: () => getLabel(shape),
+        getProps: () => props,
+        formatSegment: () => (formatSegment(shape.data as Segment) || { label: getLabel(shape), data: (shape.data as Segment).getData() })
     }
 }
 

@@ -17,7 +17,7 @@ type EdiOptions = {
     /**
      * Configure rules to specify the output shape when converting EDI to JSON.
      */
-    buildRules?: BuildRules;
+    buildRules: BuildRules;
 
     /**
      * Use the contents of a file when parsing.
@@ -50,7 +50,7 @@ class Edi {
      * @param rules 
      */
     shape(rules: BuildRules): Edi {
-        this.options.buildRules = rules;
+        this.options = { ...this.options, buildRules: rules }
         return this;
     }
 
@@ -59,7 +59,7 @@ class Edi {
      * @param structure 
      */
     structure(structure: EdiStructure): Edi {
-        this.options = {...this.options, structure }
+        this.options = { ...this.options, structure }
         return this;
     }
     
@@ -68,8 +68,8 @@ class Edi {
      * @param path 
      */
     file(path: string): Edi {
-        this.options = {...this.options, file: path }
-        delete this.options.text;
+        this.options = { ...this.options, file: path }
+        this.options.text = undefined;
         return this;
     }
     
@@ -79,7 +79,7 @@ class Edi {
      */
     text(text: string): Edi {
         this.options = {...this.options, text }
-        delete this.options.file;
+        this.options.file = undefined;
         return this;
     }
     
