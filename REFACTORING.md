@@ -17,7 +17,7 @@ The raw data of an EDI component (message, segment etc.) can be represented
 and formatted in multiple ways, and the resulting data is referred to
 as the `shape`.
 ## **Segment**
-aaaaaa
+AAAAAAAAAAAAAHHHHH
 <br><br>
 
 # Core Functionality
@@ -32,17 +32,27 @@ Transforms a stream of segment into another stream or shape.
 EdiFormat does not sound that great honestly.
 ### More Generic
 Generalize `databuilder` function into a more generic EdiTransform.
-The current `EdiFormat` is too inflexible and opinionated. This class
-can be refactored into `EdiStructureTransform`.
+The current `EdiFormat` is too inflexible. It also performs too many
+tasks by itself. Structuring and formatting should be split into two
+modukes. This class can be refactored into `EdiStructureTransform`.
 <br><br>
 
 ## **(Edi) StructureTransform** (name WIP)
 Replaces `EdiFormat`. Implements/extends `EdiTransform` and converts the
-individual segments into a structure of their logical relations according to
-an EDIFACT specification. Can also make use of a `ShapeBuilder` to change
-the shape of the segments while building the structure.
+individual segments into a stream of their logical relations according to
+an EDIFACT structure specification. Meaning, it puts the segments into
+groups.
+### StructureStream
+Type of the resulting stream?
+### StructureShape
+Rename `SegmentShape` and `GroupShape` into something better,
+perhaps something along the lines of a `StructureShape` ??
 <br><br>
 
-## **(Edi) ShapeBuilder** (name WIP)
-Makes a `shape` from a segment.
+## **(Edi) ShapeTransform** (name WIP)
+Makes a `shape` from a StructureStream.
 <br><br>
+
+# TODO
+- Make dependency-graph of current files to get a better understanding
+of what we want to refactor.
