@@ -1,13 +1,13 @@
-import { writeFileSync } from 'fs';
+import { GROUP_CONTACTS, GROUP_CONTAINERS, GROUP_PARTY, GROUP_RELATED_MESSAGE, GROUP_TRANSPORT } from './lib/structure/specs/BAPLIE';
 import { resolve } from 'path';
+import { writeFileSync } from 'fs';
 import edi from './lib';
-import baplie, { GROUP_TRANSPORT, GROUP_RELATED_MESSAGE, GROUP_CONTACTS, GROUP_PARTY, GROUP_CONTAINERS } from './lib/structure/baplie';
-import { BuildRules } from './lib/types/databuilder';
-import { composites } from './lib/parser';
+import { ShapeRuleSet } from './lib/shape';
+import { BAPLIE } from './lib/structure';
 
-const rules: BuildRules = [
+const rules: ShapeRuleSet = [
     api => ({
-        label: api.getLabel(),
+        label: api.getLabel,
         conditions: [
             api.wrapOr(
                 api.hasLabel(GROUP_RELATED_MESSAGE),
@@ -16,17 +16,16 @@ const rules: BuildRules = [
                 api.hasLabel(GROUP_TRANSPORT),
                 api.hasLabel(GROUP_CONTAINERS)
             ),
-            api.isGroup()
+            api.isGroup
         ]
     }),
     api => ({
+        label: api.getLabel,
         conditions: [
             api.wrapOr(
-                api.isSegment()
+                api.isSegment
             )
-        ],
-        label: () => api.formatSegment().label,
-        selector: () => api.formatSegment().data
+        ]
     })
 ];
 
@@ -34,8 +33,6 @@ const rules: BuildRules = [
 start();
 
 async function start() {
-    const result = await edi({ structure: baplie, buildRules: rules }).file(resolve(__dirname, '../data/baplie.EDI')).build();
+    const result = await edi({ spec: BAPLIE, shapeRules: rules }).file(resolve(__dirname, '../data/baplie.EDI')).build<{}>();
     writeFileSync('cool_test_file.json', JSON.stringify(result, undefined, 2));
-
-    console.log(composites("TDT+20+560957+1+11+UFE:172:20+++CQYU:103::ANINA").map(c => c.getElements().map(e => e.getData())))
 }

@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Debug Lib",
-            "program": "${workspaceFolder}/build/lib/index.js",
+            "program": "${workspaceFolder}/build/index.js",
             "request": "launch",
             "skipFiles": [
                 "<node_internals>/**"

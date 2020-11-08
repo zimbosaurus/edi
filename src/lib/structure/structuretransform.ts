@@ -1,65 +1,54 @@
-import {
-    StructureItem,
-    StructureGroup,
-    StructureSegment,
-    EdiStructure,
-    IEdiFormat,
-    EdiFormatEventMap,
-    FORMAT_EVENT_DONE,
-    FORMAT_EVENT_SEGMENT_DONE,
-    FORMAT_EVENT_ITEM_DONE,
-    FORMAT_EVENT_REPEAT,
-    FORMAT_EVENT_GROUP_ENTER,
-    FORMAT_EVENT_GROUP_EXIT
-} from "./types/format";
-import { Segment } from "./types/parser";
-import { Observable } from "@zimbosaurus/observable";
+import Segment from "../parser/segment";
+import { EdiShape } from '../shape/types';
+import { EdiFormatEventMap as EdiStructureEventMap, FORMAT_EVENT_GROUP_ENTER, FORMAT_EVENT_GROUP_EXIT, FORMAT_EVENT_ITEM_DONE, FORMAT_EVENT_REPEAT, FORMAT_EVENT_SEGMENT_DONE } from "./events";
+import { EdiStructureSpec, StructureGroup, StructureSegment, StructureItem } from "./types";
 
-const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
-const ERROR_UNEXPECTED_SEGMENT = 'Segment received does not fit the format structure.'
-const ERROR_MISSING_STRUCTURE = 'Format does not have a structure.' // TODO better
-
+/**
+ * 
+ */
 type Instructions = { pullStack: boolean, nextSegment: boolean }
 
 /**
  * 
  */
-export default class EdiFormat extends Observable<EdiFormatEventMap> implements IEdiFormat {
-    private root: StructureGroup;
-    private isReading = false;
+type Controller = TransformStreamDefaultController<EdiShape>;
 
-    constructor(public formatStructure?: EdiStructure) {
-        super();
+const ERROR_INVALID_STRUCTURE_TYPE = 'Structure type is invalid.';
+const ERROR_UNEXPECTED_SEGMENT = 'Segment received does not fit the format structure.'
+const ERROR_MISSING_STRUCTURE = 'Format does not have a structure.' // TODO better
+
+/**
+ * Transforms a segmentstream into a structurestream.
+ */
+export default class EdiStructureTransform implements Transformer<Segment, EdiShape> {
+
+    private root: StructureGroup;
+
+    constructor(private spec: EdiStructureSpec) {
     }
-    
-    structure(s: EdiStructure) {
-        this.formatStructure = s;
+
+    start() {
+        this.root = this.createRoot();
+    }
+
+    transform(segment: Segment, controller: Controller) {
+        this.onSegment(segment, controller);
+    }
+
+    read(stream?: ReadableStream<Segment>): ReadableStream<EdiShape> {
+        return stream.pipeThrough(new TransformStream(this));
+    }
+
+    structure(spec: EdiStructureSpec) {
+        this.spec = spec;
         return this;
     }
 
-    read(stream?: ReadableStream<Segment>) {
-
-        // TODO error handling
-        if (!this.formatStructure) {
-            throw new Error(ERROR_MISSING_STRUCTURE);
-        }
-
-        const format = this;
-        this.isReading = true;
-
-        this.root = this.createRoot();
-        readStream(stream.getReader());
-
-        async function readStream(reader?: ReadableStreamReader<Segment>) {
-            const { done, value: segment } = await reader.read();
-            if (segment) {
-                format.onSegment(segment);
-            }
-
-            if (!done) {
-                format.isReading = false;
-                return await readStream(reader); 
-            }
+    makeOutputShape(event: keyof EdiStructureEventMap, structure: StructureItem, segment: Segment): EdiShape<Segment> {
+        return {
+            data: segment,
+            structure,
+            event
         }
     }
 
@@ -70,23 +59,23 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * @param segment
      * @returns if the item should be pulled
      */
-    private handleItem(item: StructureItem, segment: Segment): Instructions {
+    private handleItem(item: StructureItem, segment: Segment, controller: Controller): Instructions {
         // The return value
         let ins: Instructions;
 
-        if (!item?.data) {
+        if (!item?.meta) {
             this.appendItemData(item);
         }
         
         // Handle depending on item type
         if (item.type == 'segment') {
-            ins = this.handleSegment(item, segment);
+            ins = this.handleSegment(item, segment, controller);
             if (ins.nextSegment) { // TODO do this inside function instead?
-                item.data.repetitions++;
+                item.meta.repetitions++;
             }
         }
         else if (item.type == 'group' || item.type == 'root') {
-            ins = this.handleGroup(item, segment);
+            ins = this.handleGroup(item, segment, controller);
         }
         else {
             // TODO handle when type is invalid
@@ -94,7 +83,7 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
         }
 
         if (ins.pullStack) {
-            this.emit(FORMAT_EVENT_ITEM_DONE, item);
+            controller.enqueue(this.makeOutputShape(FORMAT_EVENT_ITEM_DONE, item, segment));
         }
 
         return ins;
@@ -105,13 +94,13 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * @param item 
      * @param segment 
      */
-    private handleSegment(item: StructureSegment, segment: Segment): Instructions {
+    private handleSegment(item: StructureSegment, segment: Segment, controller: Controller): Instructions {
         let ins: Instructions = undefined;
 
         if (item.id == segment.getId()) {
             // We keep the item on the stack if it could repeat
             // Because the segment did match, we always want the next one
-            this.emit(FORMAT_EVENT_SEGMENT_DONE, {item, data: segment});
+            controller.enqueue(this.makeOutputShape(FORMAT_EVENT_SEGMENT_DONE, item, segment));
             ins = {pullStack: !this.canRepeat(item), nextSegment: true};
         }
         else if (item.conditional || this.hasRepeated(item)) {
@@ -131,11 +120,11 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * @param group 
      * @param segment 
      */
-    private handleGroup(group: StructureGroup, segment: Segment): Instructions {
+    private handleGroup(group: StructureGroup, segment: Segment, controller: Controller): Instructions {
         const itemStack = [...group.entries];
 
-        if (group.data.entryPointer == 0) {
-            this.emit(FORMAT_EVENT_GROUP_ENTER, group);
+        if (group.meta.entryPointer == 0) {
+            controller.enqueue(this.makeOutputShape(FORMAT_EVENT_GROUP_ENTER, group, segment));
         }
 
         // Iterating over items in group until we request the next segment, OR pull the group off the stack
@@ -143,18 +132,18 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
 
             if (this.isDone(group)) { // TODO maybe not work?? TODO maybe yes work!
                 this.resetGroup(group);
-                this.emit(FORMAT_EVENT_REPEAT, group);
+                controller.enqueue(this.makeOutputShape(FORMAT_EVENT_REPEAT, group, segment));
             }
 
-            const item = itemStack[group.data.entryPointer];
-            let ins: Instructions = this.handleItem(item, segment);
+            const item = itemStack[group.meta.entryPointer];
+            let ins: Instructions = this.handleItem(item, segment, controller);
             let outIns: Instructions = undefined;
 
             if (ins.pullStack) {
                 // Current item inside this group is done and wants to be pulled off the stack
                 // This is either because it can't repeat or it did not fit and was conditional
 
-                group.data.entryPointer++; // MAYBE we always want to do this
+                group.meta.entryPointer++; // MAYBE we always want to do this
 
                 // Item is done, but does not request the next segment
                 // This means the item did not match
@@ -201,7 +190,7 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
                 // makes use of this state: "badExit"
                 // TODO ???
                 if (item.type == 'segment') {
-                    item.data.repetitions = 0;
+                    item.meta.repetitions = 0;
                 }
             }
             else {
@@ -217,9 +206,9 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
             // Reset the group when pulling it off the stack
             // We always reset the group when exiting, this way we don't have to worry about it later on
             if (outIns.pullStack) {
-                this.emit(FORMAT_EVENT_GROUP_EXIT, group);
-                group.data.repetitions++; // TODO NEW should we really increase repetitions here?
-                group.data.entryPointer = 0;
+                controller.enqueue(this.makeOutputShape(FORMAT_EVENT_GROUP_EXIT, group, segment));
+                group.meta.repetitions++; // TODO NEW should we really increase repetitions here?
+                group.meta.entryPointer = 0;
             }
 
             // We need to return if we want to do either
@@ -233,9 +222,9 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * 
      * @param segment 
      */
-    private onSegment(segment: Segment) {
-        if (this.handleItem(this.root, segment).pullStack) {
-            this.emit(FORMAT_EVENT_DONE);
+    private onSegment(segment: Segment, controller: Controller) {
+        if (this.handleItem(this.root, segment, controller).pullStack) {
+            controller.enqueue(this.makeOutputShape("done", undefined, segment))
         }
     }
 
@@ -244,8 +233,8 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * @param group 
      */
     private resetGroup(group: StructureGroup) {
-        group.data.entryPointer = 0;
-        group.data.repetitions++;
+        group.meta.entryPointer = 0;
+        group.meta.repetitions++;
     }
 
     /**
@@ -253,7 +242,7 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * @param item 
      */
     private appendItemData(item: StructureItem) {
-        item.data = {
+        item.meta = {
             repetitions: 0,
             entryPointer: 0
         }
@@ -266,7 +255,7 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      */
     private canRepeat(item: StructureItem) {
         // TODO handle when data may be null?
-        return item.type != 'root' && (item?.data.repetitions) < (item as StructureGroup | StructureSegment).repeat - 1;
+        return item.type != 'root' && (item?.meta.repetitions) < (item as StructureGroup | StructureSegment).repeat - 1;
     }
 
     /**
@@ -274,7 +263,7 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * @param item 
      */
     private hasRepeated(item: StructureItem) {
-        return item.data.repetitions > 0;
+        return item.meta.repetitions > 0;
     }
 
     /**
@@ -282,10 +271,19 @@ export default class EdiFormat extends Observable<EdiFormatEventMap> implements 
      * @param group 
      */
     private isDone(group: StructureGroup) {
-        return group.data.entryPointer >= group.entries.length;
+        return group.meta.entryPointer >= group.entries.length;
     }
 
+    /**
+     * 
+     */
     private createRoot(): StructureGroup {
-        return {type: 'root', entries: [...this.formatStructure], conditional: false, repeat: 1, label: {name: 'root'}}
+        return {
+            type: 'root',
+            entries: [...this.spec],
+            conditional: false,
+            repeat: 1,
+            label: {name: 'root'}
+        }
     }
 }

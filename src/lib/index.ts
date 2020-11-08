@@ -1,16 +1,15 @@
 /* Core API */
 import edi, { Edi } from './edi';
-import EdiParser from './parser';
-import EdiFormat from './format';
-import databuilder from './databuilder';
+import EdiParser from './parser/parser';
+import databuilder from './shape/jsonbuilder';
 import { streamFile, streamString } from './io';
 
 /* Utility */
-import './structure';
+import './structure/api';
 
 /* Formats */
-import './structure/baplie';
+import './structure/specs/BAPLIE';
 
 export default edi;
-export { Edi, EdiParser, EdiFormat }
+export { Edi, EdiParser }
 export { databuilder, streamFile, streamString }

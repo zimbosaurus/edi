@@ -1,4 +1,4 @@
-import { Segment } from '../types/parser';
+import Segment from '../parser/segment';
 
 export type SegmentFormatter = (segment: Segment) => { label: string, data: any }
 export type FormattedSegment<T> = {

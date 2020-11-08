@@ -1,11 +1,17 @@
-import { StructureGroup, StructureItem, StructureLabel, StructureSegment } from "./types/format"
+import { StructureGroup, StructureItem, StructureLabel, StructureSegment } from './types';
 
+/**
+ * 
+ */
 type MakeStructureGroupOptions = {
     conditional?: boolean,
     repeat?: number,
     label?: StructureLabel
 }
 
+/**
+ * 
+ */
 const defaultGroupOptions: MakeStructureGroupOptions = {
     conditional: false,
     repeat: 1
@@ -43,6 +49,6 @@ export function makeStructureGroup(entries: StructureItem[], options = defaultGr
  * 
  * @param item 
  */
-export function applyLabel(item: StructureItem, name?: string, desc?: string, info?: any): StructureItem {
-    return {...item, label: {name, description: desc, info} }
+export function applyLabel(item: StructureItem, name?: string, desc?: string): StructureItem {
+    return {...item, label: {name, description: desc} }
 }

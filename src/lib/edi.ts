@@ -1,9 +1,9 @@
-import { EdiFormat, EdiParser } from ".";
-import { EdiStructure } from "./types/format";
-import * as io from "./io";
-import databuilder from "./databuilder";
-import { BuildRules } from "./types/databuilder";
-import "web-streams-polyfill";
+import * as io from './io';
+import { EdiStructureSpec } from './structure/types';
+import 'web-streams-polyfill';
+import JsonBuilder, { EdiStructureStream, ShapeRuleSet } from './shape';
+import EdiParser from './parser';
+import EdiStructureTransform from './structure';
 
 /**
  * EDI configurations.
@@ -12,12 +12,12 @@ type EdiOptions = {
     /**
      * The structure/format to use when parsing.
      */
-    structure: EdiStructure;
+    spec: EdiStructureSpec;
 
     /**
      * Configure rules to specify the output shape when converting EDI to JSON.
      */
-    buildRules: BuildRules;
+    shapeRules: ShapeRuleSet;
 
     /**
      * Use the contents of a file when parsing.
@@ -49,8 +49,8 @@ class Edi {
      * 
      * @param rules 
      */
-    shape(rules: BuildRules): Edi {
-        this.options = { ...this.options, buildRules: rules }
+    shape(rules: ShapeRuleSet): Edi {
+        this.options = { ...this.options, shapeRules: rules }
         return this;
     }
 
@@ -58,8 +58,8 @@ class Edi {
      * 
      * @param structure 
      */
-    structure(structure: EdiStructure): Edi {
-        this.options = { ...this.options, structure }
+    structure(structure: EdiStructureSpec): Edi {
+        this.options = { ...this.options, spec: structure }
         return this;
     }
     
@@ -87,11 +87,16 @@ class Edi {
      * Turn the last data that was added into a stream and parse it into an object.
      * @returns data in the shape described by the buildRules
      */
-    build() {
+    async build<T>(): Promise<T> {
         const parser = new EdiParser();
-        const format = new EdiFormat(this.options.structure);
+        const dataStream = this.makeStream();
+        const structureTransform = new TransformStream(new EdiStructureTransform(this.options.spec));
 
-        return databuilder(format, this.options.buildRules, parser.parse(this.makeStream()));
+        const structureStream: EdiStructureStream = parser.parse(dataStream).pipeThrough(structureTransform);
+        const builder = new JsonBuilder<T>(this.options.shapeRules).collector();
+        const result = await builder(structureStream);
+
+        return result;
     }
 
     /**
