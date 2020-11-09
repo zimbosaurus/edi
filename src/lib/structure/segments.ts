@@ -1,21 +1,23 @@
 import Segment from '../parser/segment';
 
 export type SegmentFormatter = (segment: Segment) => { label: string, data: any }
-export type FormattedSegment<T> = {
-    label: string;
+export type FormattedSegment<T, L = string> = {
+    label: L;
     data: T
 }
 
-type LOC = FormattedSegment<{
+export type LOCLabel = 'location' | 'POL' | 'POD' | 'FPOD' | 'cell'
+
+export type LOCShape = FormattedSegment<{
     cell?: string;
     name?: string;
-}>
+}, LOCLabel>
 
-function LOC(segment: Segment) {
+function LOC(segment: Segment): LOCShape {
     const composites = segment.getComposites();
     const ATTR_CODE = composites[0].getData();
 
-    let label: string, data: any;
+    let label: LOCLabel, data: any;
 
     data = {
         cell: composites[1].getElements()[0].getData(),

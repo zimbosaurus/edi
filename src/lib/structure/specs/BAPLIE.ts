@@ -1,18 +1,59 @@
 import { makeStructureGroup as group, makeStructureSegment as segment } from '../api';
 import { EdiStructureSpec } from '../types';
+import { LOCShape, LOCLabel } from '../segments';
 
 /**
- * Baplie EDIFACT format.
+ * Baplie EDIFACT structure specification.
 */
 
+export type BaplieMessage = {
+    [GROUP_RELATED_MESSAGE]: {}[]
+    [GROUP_CONTACTS]: {}[]
+    [GROUP_TRANSPORT]: {}[]
+    [GROUP_CONTAINERS]: {
+        [GROUP_EQUIPMENT]: {}
+        [GROUP_DANGEROUS_CARGO]: {}
+    }[]
+}
+
+/**
+ * 
+ */
 export const GROUP_CONTAINERS = 'containers';
+
+/**
+ * 
+ */
 export const GROUP_EQUIPMENT = 'equipment';
+
+/**
+ * 
+ */
 export const GROUP_DANGEROUS_CARGO = 'dangerous_cargo';
+
+/**
+ * 
+ */
 export const GROUP_TRANSPORT = 'transport';
+
+/**
+ * 
+ */
 export const GROUP_CONTACTS = 'contacts';
+
+/**
+ * 
+ */
 export const GROUP_PARTY = 'party';
+
+/**
+ * 
+ */
 export const GROUP_RELATED_MESSAGE = 'related_message';
 
+/**
+ * 
+ */
 export const baplie: EdiStructureSpec = [
     segment('UNB'),
     segment('UNH'),

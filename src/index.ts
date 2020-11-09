@@ -35,7 +35,7 @@ const rules: ShapeRuleSet = [
 start();
 
 async function start() {
-    const file = streamFile(resolve(__dirname, '../data/baplie.EDI'));
+/*     const file = streamFile(resolve(__dirname, '../data/baplie.EDI'));
     const parser = new EdiParser();
     const structureTransform = new TransformStream(new EdiStructureTransform(BAPLIE));
     const jsonBuilder = new JsonBuilder(rules);
@@ -43,5 +43,7 @@ async function start() {
 
     const result = await jsonBuilder.collect(parser.parse(file).pipeThrough(structureTransform).pipeThrough(transform));
 
-    writeFileSync('cool_test_file.json', JSON.stringify(result, undefined, 2));
+    writeFileSync('cool_test_file.json', JSON.stringify(result, undefined, 2)); */
+
+    writeFileSync('BAPLIE.json', JSON.stringify(BAPLIE, undefined, 3));
 }

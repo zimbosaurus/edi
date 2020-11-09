@@ -1,0 +1,258 @@
+[
+   {
+      "type": "segment",
+      "id": "UNB",
+      "conditional": false,
+      "repeat": 1
+   },
+   {
+      "type": "segment",
+      "id": "UNH",
+      "conditional": false,
+      "repeat": 1
+   },
+   {
+      "type": "segment",
+      "id": "BGM",
+      "conditional": false,
+      "repeat": 1
+   },
+   {
+      "type": "segment",
+      "id": "DTM",
+      "conditional": false,
+      "repeat": 1
+   },
+   {
+      "type": "group",
+      "entries": [
+         {
+            "type": "segment",
+            "id": "RFF",
+            "conditional": false,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "DTM",
+            "conditional": true,
+            "repeat": 9
+         }
+      ],
+      "conditional": true,
+      "repeat": 9,
+      "label": {
+         "name": "related_message"
+      }
+   },
+   {
+      "type": "group",
+      "entries": [
+         {
+            "type": "segment",
+            "id": "NAD",
+            "conditional": false,
+            "repeat": 1
+         },
+         {
+            "type": "group",
+            "entries": [
+               {
+                  "type": "segment",
+                  "id": "CTA",
+                  "conditional": false,
+                  "repeat": 1
+               },
+               {
+                  "type": "segment",
+                  "id": "COM",
+                  "conditional": true,
+                  "repeat": 9
+               }
+            ],
+            "conditional": true,
+            "repeat": 9,
+            "label": {
+               "name": "party"
+            }
+         }
+      ],
+      "conditional": true,
+      "repeat": 9,
+      "label": {
+         "name": "contacts"
+      }
+   },
+   {
+      "type": "group",
+      "entries": [
+         {
+            "type": "segment",
+            "id": "TDT",
+            "conditional": false,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "LOC",
+            "conditional": false,
+            "repeat": 2
+         },
+         {
+            "type": "segment",
+            "id": "DTM",
+            "conditional": false,
+            "repeat": 99
+         },
+         {
+            "type": "segment",
+            "id": "RFF",
+            "conditional": true,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "FTX",
+            "conditional": true,
+            "repeat": 1
+         }
+      ],
+      "conditional": false,
+      "repeat": 3,
+      "label": {
+         "name": "transport"
+      }
+   },
+   {
+      "type": "group",
+      "entries": [
+         {
+            "type": "segment",
+            "id": "LOC",
+            "conditional": false,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "GID",
+            "conditional": true,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "GDS",
+            "conditional": true,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "FTX",
+            "conditional": true,
+            "repeat": 9
+         },
+         {
+            "type": "segment",
+            "id": "MEA",
+            "conditional": false,
+            "repeat": 9
+         },
+         {
+            "type": "segment",
+            "id": "DIM",
+            "conditional": true,
+            "repeat": 9
+         },
+         {
+            "type": "segment",
+            "id": "TMP",
+            "conditional": true,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "RNG",
+            "conditional": true,
+            "repeat": 1
+         },
+         {
+            "type": "segment",
+            "id": "LOC",
+            "conditional": true,
+            "repeat": 9
+         },
+         {
+            "type": "segment",
+            "id": "RFF",
+            "conditional": false,
+            "repeat": 1
+         },
+         {
+            "type": "group",
+            "entries": [
+               {
+                  "type": "segment",
+                  "id": "EQD",
+                  "conditional": false,
+                  "repeat": 1
+               },
+               {
+                  "type": "segment",
+                  "id": "EQA",
+                  "conditional": true,
+                  "repeat": 9
+               },
+               {
+                  "type": "segment",
+                  "id": "NAD",
+                  "conditional": true,
+                  "repeat": 9
+               },
+               {
+                  "type": "segment",
+                  "id": "RFF",
+                  "conditional": true,
+                  "repeat": 9
+               }
+            ],
+            "conditional": true,
+            "repeat": 3,
+            "label": {
+               "name": "equipment"
+            }
+         },
+         {
+            "type": "group",
+            "entries": [
+               {
+                  "type": "segment",
+                  "id": "DGS",
+                  "conditional": false,
+                  "repeat": 1
+               },
+               {
+                  "type": "segment",
+                  "id": "FTX",
+                  "conditional": true,
+                  "repeat": 1
+               }
+            ],
+            "conditional": true,
+            "repeat": 999,
+            "label": {
+               "name": "dangerous_cargo"
+            }
+         }
+      ],
+      "conditional": true,
+      "repeat": 9999,
+      "label": {
+         "name": "containers"
+      }
+   },
+   {
+      "type": "segment",
+      "id": "UNT",
+      "conditional": false,
+      "repeat": 1
+   }
+]
