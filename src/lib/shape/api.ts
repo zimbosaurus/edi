@@ -6,8 +6,8 @@ export function makeSelectorApi() {
         wrapOr,
         hasLabel,
         getLabel: (props: RuleProps) => getLabel(props.shape.structure),
-        isGroup: (props: RuleProps) => props.shape.structure.type != 'segment',
-        isSegment: (props: RuleProps) => props.shape.structure.type == 'segment'
+        isGroup: (props: RuleProps) => props.shape.structure?.type != 'segment',
+        isSegment: (props: RuleProps) => props.shape.structure?.type == 'segment'
     }
 }
 

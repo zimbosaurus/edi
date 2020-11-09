@@ -1,6 +1,6 @@
 import Segment from "../parser/segment";
 import { EdiShape } from '../shape/types';
-import { EdiFormatEventMap as EdiStructureEventMap, FORMAT_EVENT_GROUP_ENTER, FORMAT_EVENT_GROUP_EXIT, FORMAT_EVENT_ITEM_DONE, FORMAT_EVENT_REPEAT, FORMAT_EVENT_SEGMENT_DONE } from "./events";
+import { EdiFormatEventMap as EdiStructureEventMap, FORMAT_EVENT_GROUP_ENTER, FORMAT_EVENT_GROUP_EXIT, FORMAT_EVENT_ITEM_DONE, FORMAT_EVENT_GROUP_REPEAT, FORMAT_EVENT_SEGMENT_DONE } from "./events";
 import { EdiStructureSpec, StructureGroup, StructureSegment, StructureItem } from "./types";
 
 /**
@@ -20,12 +20,11 @@ const ERROR_MISSING_STRUCTURE = 'Format does not have a structure.' // TODO bett
 /**
  * Transforms a segmentstream into a structurestream.
  */
-export default class EdiStructureTransform implements Transformer<Segment, EdiShape> {
+export default class EdiStructureTransform implements Transformer<Segment, EdiShape<Segment>> {
 
     private root: StructureGroup;
 
-    constructor(private spec: EdiStructureSpec) {
-    }
+    constructor(private spec: EdiStructureSpec) {}
 
     start() {
         this.root = this.createRoot();
@@ -35,8 +34,8 @@ export default class EdiStructureTransform implements Transformer<Segment, EdiSh
         this.onSegment(segment, controller);
     }
 
-    read(stream?: ReadableStream<Segment>): ReadableStream<EdiShape> {
-        return stream.pipeThrough(new TransformStream(this));
+    read(stream?: ReadableStream<Segment>): ReadableStream<EdiShape<Segment>> {
+        return stream.pipeThrough<EdiShape<Segment>>(new TransformStream<Segment, EdiShape<Segment>>(this));
     }
 
     structure(spec: EdiStructureSpec) {
@@ -132,7 +131,7 @@ export default class EdiStructureTransform implements Transformer<Segment, EdiSh
 
             if (this.isDone(group)) { // TODO maybe not work?? TODO maybe yes work!
                 this.resetGroup(group);
-                controller.enqueue(this.makeOutputShape(FORMAT_EVENT_REPEAT, group, segment));
+                controller.enqueue(this.makeOutputShape(FORMAT_EVENT_GROUP_REPEAT, group, segment));
             }
 
             const item = itemStack[group.meta.entryPointer];

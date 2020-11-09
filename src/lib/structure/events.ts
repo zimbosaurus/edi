@@ -28,7 +28,7 @@ export const FORMAT_EVENT_ITEM_DONE = 'item_done';
 /**
  * 
  */
-export const FORMAT_EVENT_REPEAT = 'repeat';
+export const FORMAT_EVENT_GROUP_REPEAT = 'group_repeat';
 
 /**
  * 
@@ -38,6 +38,6 @@ export type EdiFormatEventMap = {
     [FORMAT_EVENT_GROUP_EXIT]: StructureItem,
     [FORMAT_EVENT_SEGMENT_DONE]: StructureItem,  // TODO rename to "segment_exit"? more consequent naming of events
     [FORMAT_EVENT_ITEM_DONE]: StructureItem,
-    [FORMAT_EVENT_REPEAT]: StructureItem,
+    [FORMAT_EVENT_GROUP_REPEAT]: StructureItem,
     [FORMAT_EVENT_DONE]: StructureItem
 }

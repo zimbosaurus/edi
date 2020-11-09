@@ -1,6 +1,7 @@
 import { StructureGroup, StructureItem } from "../structure/types";
 import { EdiFormatEventMap } from "../structure/events";
 import { makeSelectorApi } from "../shape/api";
+import { Segment } from "../parser";
 
 /**
  * State held while processing an edistructure stream.
@@ -47,7 +48,7 @@ export type RuleSelector<T> = (props: RuleProps) => T;
 export type RuleProps = {
     stack: EdiGroupState[],
     group: EdiGroupState,
-    shape: EdiShape
+    shape: EdiShape | EdiGroupState
 }
 
 /**

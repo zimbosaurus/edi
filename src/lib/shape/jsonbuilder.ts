@@ -2,6 +2,7 @@ import { StructureGroup } from '../structure/types';
 import { makeSelectorApi } from './api';
 import { EdiGroupState, EdiShape, EdiShapeCollector, EdiStructureStream, RuleProps, RuleSelector, ShapeRule, ShapeRuleFactory, ShapeRuleSet } from './types';
 import { StreamCollector } from '../common/types';
+import { Segment } from '../parser';
 
 export class EdiShapeStateHandler {
 
@@ -21,6 +22,10 @@ export class EdiShapeStateHandler {
 
     head() {
         return this.state[0];
+    }
+
+    bottom() {
+        return this.state.slice(-1)[0];
     }
 
     make(g: StructureGroup): EdiGroupState {
@@ -43,10 +48,7 @@ export class EdiShapeStateHandler {
      * @returns the head, if the data is not empty
      */
     pop() {
-        const s = this.state.shift();
-        if (this.notEmpty(s.state)) {
-            return s;
-        }
+        return this.state.shift();
     }
 
     private notEmpty(s: {}) {
@@ -74,14 +76,12 @@ export default class JsonBuilder<T> implements EdiShapeCollector<T> {
     private async pump(reader: ReadableStreamReader<EdiShape>): Promise<T> {
         const chunk = await reader.read();
 
-        //console.log(this.state.head()?.state);
-
         if (chunk.value) {
             this.handle(chunk.value);
         }
 
         if (chunk.done) {
-            return this.state.head().state as T; // TODO
+            return this.state.bottom().state as T; // TODO
         }
         else {
             return this.pump(reader);
@@ -99,10 +99,10 @@ export default class JsonBuilder<T> implements EdiShapeCollector<T> {
                 break;
 
             case "group_exit":
-                appendHead();
+                exit();
                 break;
 
-            case "repeat":
+            case "group_repeat":
                 repeat();
                 break;
 
@@ -118,23 +118,27 @@ export default class JsonBuilder<T> implements EdiShapeCollector<T> {
         /**
          * Pop head of the stack and process.
          */
-        function appendHead() {
-
-            if (state.head().structure.type == 'root') {
+        function exit() {
+            if (shape.structure.type == 'root') {
                 return;
             }
 
             const group = state.pop();
+
             if (group) {
-                self.process(group, shape);
+                self.process(state.head(), group);
             }
         }
 
         function repeat() {
-            const head = state.head();
+            const group = state.pop();
+            if (group) {
+                self.process(state.head(), group);
+            }
 
-            appendHead();
-            state.enter(head.structure);
+            self.process(state.head(), group);
+
+            state.enter(group.structure);
         }
 
         function segment() {
@@ -142,7 +146,7 @@ export default class JsonBuilder<T> implements EdiShapeCollector<T> {
         }
     }
 
-    private process(group: EdiGroupState, shape: EdiShape) {
+    private process(group: EdiGroupState, shape: EdiShape | EdiGroupState) {
         const props = this.makeProps(group, shape);
 
         for (let rule of this.ruleset) {
@@ -163,12 +167,27 @@ export default class JsonBuilder<T> implements EdiShapeCollector<T> {
         const computedLabel = (label as RuleSelector<string>)?.(props) || (label as string);
         const fullfilled = conditions.reduce<boolean>((val, c) => val && c(props), true);
 
+        
         if (fullfilled) {
-            Object.assign(group.state, {[computedLabel]: shape.data})
+            if (props.shape.structure?.type != 'segment') {
+                this.assign(group.state, (shape as EdiGroupState).state, computedLabel);
+            }
+            else {
+                this.assign(group.state, (shape as EdiShape).data, computedLabel);
+            }
         }
     }
 
-    private makeProps(g: EdiGroupState, s: EdiShape): RuleProps {
+    private assign(parent: {}, obj: any, key: string) {
+        if (parent[key]) {
+            parent[key] = [...parent[key], obj];
+        }
+        else {
+            parent[key] = [obj];
+        }
+    }
+
+    private makeProps(g: EdiGroupState, s: EdiShape | EdiGroupState): RuleProps {
         return {
             stack: this.state.get(),
             group: g,
